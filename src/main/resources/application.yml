@@ -1,0 +1,17 @@
+applicationName: OauthTemplateApp
+local-config-override-folder: ${user.home}/apps/${applicationName}
+spring:
+  application:
+    name: ${applicationName}
+  config:
+    import:
+      - classpath:config/security/GoogleOauth2.yml
+      - classpath:config/security/GithubOauth2.yml
+      - classpath:config/db/hikari.yml
+      - classpath:config/monitoring/actuator.yml
+      - file:${local-config-override-folder}/secrets.properties
+      - optional:file:${local-config-override-folder}/env_overrides.properties
+
+#logging:
+  #level:
+  #  org.springframework.security: TRACE
