@@ -32,6 +32,22 @@ build/
 ### VS Code ###
 .vscode/
 
+### Local secrets ###
+.env
+.env.*
+*.env
+**/secrets.properties
+**/secrets.yml
+**/secrets.yaml
+**/env_overrides.properties
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+*.pem
+*.key
+*.p12
+*.jks
+
 ### Mac OS ###
 .DS_Store
 /.idea/

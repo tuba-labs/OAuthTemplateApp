@@ -4,7 +4,7 @@ spring:
       client:
         registration:
           github:
-            client-id: Ov23li58vg5sxvzwsYoD
+            client-id: ${GITHUB_OAUTH2_CLIENT_ID}
             client-secret: ${GITHUB_OAUTH2_CLIENT_SECRET}
             scope:
               - read:user
