@@ -41,7 +41,6 @@ public class RuntimeStartupKeyValueSection implements StartupKeyValueSection {
         values.put("Architecture", os.getArch());
         values.put("OS user", System.getProperty("user.name"));
         values.put("Timezone", ZoneId.systemDefault().toString());
-        values.put("JVM timezone property", System.getProperty("user.timezone"));
         values.put("Locale", Locale.getDefault().toLanguageTag());
         values.put("File encoding", Charset.defaultCharset().displayName());
         values.put("Temp dir", System.getProperty("java.io.tmpdir"));

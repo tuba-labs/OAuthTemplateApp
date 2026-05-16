@@ -7,14 +7,14 @@ import org.springframework.boot.context.metrics.buffering.BufferingApplicationSt
 @SpringBootApplication
 public class OauthTemplateApp {
 
-	public static void main(String[] args) {
-		run(args);
-	}
+    public static void main(String[] args) {
+        run(args);
+    }
 
-	public static void run(String[] args) {
-		final SpringApplication application = new SpringApplication(OauthTemplateApp.class);
-		application.setApplicationStartup(new BufferingApplicationStartup(2048));
-		application.run(args);
-	}
+    public static void run(String[] args) {
+        final SpringApplication application = new SpringApplication(OauthTemplateApp.class);
+        application.setApplicationStartup(new BufferingApplicationStartup(2048));
+        application.run(args);
+    }
 
 }

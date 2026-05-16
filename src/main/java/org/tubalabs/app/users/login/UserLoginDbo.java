@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.db.login;
+package org.tubalabs.app.users.login;
 
 import lombok.Builder;
 import lombok.NonNull;

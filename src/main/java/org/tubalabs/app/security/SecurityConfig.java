@@ -15,8 +15,8 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.tubalabs.app.security.identity.ExternalIdentity;
 import org.tubalabs.app.security.identity.ExternalIdentityProvider;
 import org.tubalabs.app.security.identity.ExternalIdentityProviders;
-import org.tubalabs.app.users.db.LoginResult;
-import org.tubalabs.app.users.db.UserService;
+import org.tubalabs.app.users.LoginResult;
+import org.tubalabs.app.users.UserService;
 
 import java.util.Objects;
 

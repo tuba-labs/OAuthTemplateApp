@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.db.profile;
+package org.tubalabs.app.users.profile;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,10 +12,16 @@ public class UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
 
-    private final UserProfileMapper userProfileMapper;
-
     public UserProfileDbo createInitialProfile(UUID userId, ExternalIdentity externalIdentity) {
-        final UserProfileDbo profile = userProfileMapper.toProfile(userId, externalIdentity);
+        final UserProfileDbo profile = UserProfileDbo.builder()
+                .userId(userId)
+                .displayName(externalIdentity.displayName())
+                .givenName(externalIdentity.givenName())
+                .familyName(externalIdentity.familyName())
+                .email(externalIdentity.email())
+                .pictureUrl(externalIdentity.avatarUrl())
+                .build();
+
         return userProfileRepository.insert(profile);
     }
 }

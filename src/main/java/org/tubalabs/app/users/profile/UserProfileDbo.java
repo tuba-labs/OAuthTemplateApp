@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.db.profile;
+package org.tubalabs.app.users.profile;
 
 import lombok.Builder;
 import lombok.NonNull;

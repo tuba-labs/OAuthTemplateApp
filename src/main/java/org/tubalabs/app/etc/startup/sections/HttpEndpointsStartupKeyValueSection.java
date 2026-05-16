@@ -1,6 +1,8 @@
 package org.tubalabs.app.etc.startup.sections;
 
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.actuate.endpoint.web.ExposableWebEndpoint;
+import org.springframework.boot.actuate.endpoint.web.WebEndpointsSupplier;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -13,12 +15,11 @@ import java.util.Map;
 @Order(600)
 @Component
 @ConditionalOnStartupPrinterSection(name = "httpendpointsstartupkeyvaluesection.enabled")
+@RequiredArgsConstructor
 public class HttpEndpointsStartupKeyValueSection implements StartupKeyValueSection {
     private final Environment environment;
+    private final WebEndpointsSupplier webEndpointsSupplier;
 
-    public HttpEndpointsStartupKeyValueSection(@NonNull Environment environment) {
-        this.environment = environment;
-    }
 
     @Override
     public String title() {
@@ -35,17 +36,13 @@ public class HttpEndpointsStartupKeyValueSection implements StartupKeyValueSecti
         if (managementPort != port) {
             values.put("Management port", String.valueOf(managementPort));
         }
-
         final String actuatorBaseUrl = "http://localhost:" + managementPort + actuatorBasePath;
         values.put("Actuator URL", actuatorBaseUrl);
-        values.put("Actuator health", actuatorBaseUrl + "/health");
-        values.put("Actuator info", actuatorBaseUrl + "/info");
-        values.put("Actuator loggers", actuatorBaseUrl + "/loggers");
-        values.put("Actuator metrics", actuatorBaseUrl + "/metrics");
-        values.put("Actuator startup", actuatorBaseUrl + "/startup");
-        values.put("Startup metric", actuatorBaseUrl + "/metrics/application.starts");
-        values.put("Local URL", "http://localhost:" + port);
+        for (ExposableWebEndpoint endpoint : webEndpointsSupplier.getEndpoints()) {
+            values.put("Actuator " + endpoint.getEndpointId(), actuatorBaseUrl + "/" + endpoint.getRootPath());
+        }
         values.put("Swagger UI", "http://localhost:" + port + "/swagger-ui/index.html#/");
+        values.put("Local URL", "http://localhost:" + port);
         return values;
     }
 }

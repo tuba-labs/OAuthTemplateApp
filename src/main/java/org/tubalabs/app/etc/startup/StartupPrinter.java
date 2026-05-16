@@ -15,6 +15,7 @@ import java.util.TreeSet;
 @Component
 @Slf4j
 public class StartupPrinter {
+    public static final int INDENT_WIDTH = 2;
     private final List<StartupKeyValueSection> sections;
 
     public StartupPrinter(@NonNull List<StartupKeyValueSection> sections) {
@@ -32,7 +33,7 @@ public class StartupPrinter {
     }
 
     private void renderSection(StringBuilder out, StartupKeyValueSection section) {
-        out.append("\n").append("--- ").append(section.title()).append(":\n");
+        out.append("\n").repeat(" ", INDENT_WIDTH * 1).append(section.title()).append(":\n");
         final Map<String, String> values = section.values();
         if (section instanceof StartupGroupedByValueSection groupedValueSection) {
             renderGroupedValues(out, groupedValueSection, values);
@@ -46,7 +47,7 @@ public class StartupPrinter {
                 .mapToInt(String::length)
                 .max()
                 .orElse(0);
-        values.forEach((key, value) -> out.append(" ")
+        values.forEach((key, value) -> out.repeat(" ", INDENT_WIDTH * 2)
                 .append(key)
                 .repeat(" ", keyWidth - key.length())
                 .append(" : ")
@@ -58,8 +59,8 @@ public class StartupPrinter {
         final Map<String, Set<String>> keysByValue = new TreeMap<>(section.groupedValueComparator());
         values.forEach((key, value) -> keysByValue.computeIfAbsent(value, ignored -> new TreeSet<>()).add(key));
         keysByValue.forEach((value, keys) -> {
-            out.append(" ").append(value).append(":\n");
-            keys.forEach(key -> out.append("    ").append(key).append('\n'));
+            out.repeat(" ", INDENT_WIDTH * 2).append(value).append(":\n");
+            keys.forEach(key -> out.repeat(" ", INDENT_WIDTH * 3).append(key).append('\n'));
         });
     }
 
