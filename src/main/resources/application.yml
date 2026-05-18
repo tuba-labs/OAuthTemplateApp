@@ -9,7 +9,7 @@ spring:
       - classpath:config/security/GithubOauth2.yml
       - classpath:config/db/hikari.yml
       - classpath:config/monitoring/actuator.yml
-      - file:${local-config-override-folder}/secrets.properties
+      - optional:file:${local-config-override-folder}/secrets.properties
       - optional:file:${local-config-override-folder}/env_overrides.properties
 
 #logging:

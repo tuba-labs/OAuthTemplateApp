@@ -20,7 +20,7 @@ CREATE TABLE user_identity
     given_name   VARCHAR(255),
     family_name  VARCHAR(255),
     email        VARCHAR(320),
-    picture_url  VARCHAR(2000),
+    picture_url  TEXT,
 
     CONSTRAINT user_identity_provider_subject_uq
         UNIQUE (provider_id, subject)
@@ -44,7 +44,7 @@ CREATE TABLE user_login
     subject     VARCHAR(255)  NOT NULL,
 
     client_ip   VARCHAR(64)   NOT NULL,
-    user_agent  VARCHAR(2000) NOT NULL DEFAULT ''
+    user_agent  TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX user_login_user_id_idx

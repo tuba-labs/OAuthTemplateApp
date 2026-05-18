@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.tubalabs.app.users.identity.UserIdentityAlreadyExistsException;
 import org.tubalabs.app.users.identity.UserIdentityDbo;
 import org.tubalabs.app.users.identity.UserIdentityRepository;
 import org.tubalabs.app.users.login.UserLoginDbo;
@@ -23,13 +24,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Testcontainers
 class OauthTemplateAppTests {
 
     private static final UUID USER_ID = UUID.fromString("66f83749-e6de-48c8-88a2-61ba33fe8738");
+    private static final UUID OTHER_USER_ID = UUID.fromString("4fb17c31-4b1e-4c90-8043-411ce2496306");
     private static final UUID IDENTITY_ID = UUID.fromString("c9617774-b3aa-4d4c-b469-7d0a510206c2");
+    private static final UUID OTHER_IDENTITY_ID = UUID.fromString("f5273344-5e14-4df8-b2a3-4f3cd2fb3403");
     private static final UUID LOGIN_ID = UUID.fromString("61059086-9388-47a3-b935-fb2ce13a851e");
     private static final Timestamp LOGIN_TIME = Timestamp.from(Instant.parse("2026-05-14T11:20:00Z"));
     private static final String PROVIDER_ID = "github";
@@ -101,6 +105,19 @@ class OauthTemplateAppTests {
 
         assertThat(userIdentityRepository.insert(identity)).isEqualTo(identity);
         assertThat(userIdentityRepository.findByProviderAndSubject(PROVIDER_ID, SUBJECT)).contains(identity);
+
+        final UserDbo otherUser = UserDbo.builder()
+                .id(OTHER_USER_ID)
+                .build();
+        userRepository.insert(otherUser);
+
+        final UserIdentityDbo duplicateIdentity = identity.toBuilder()
+                .id(OTHER_IDENTITY_ID)
+                .userId(OTHER_USER_ID)
+                .build();
+
+        assertThatThrownBy(() -> userIdentityRepository.insert(duplicateIdentity))
+                .isInstanceOf(UserIdentityAlreadyExistsException.class);
 
         final UserIdentityDbo requestedIdentityUpdate = identity.toBuilder()
                 .displayName(UPDATED_DISPLAY_NAME)

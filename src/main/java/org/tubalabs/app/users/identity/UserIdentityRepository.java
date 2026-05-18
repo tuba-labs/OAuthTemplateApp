@@ -36,10 +36,13 @@ public class UserIdentityRepository {
 
     public UserIdentityDbo insert(@NonNull UserIdentityDbo dbo) {
         final LinkedHashMap<String, Object> parameters = sqlRecordIntrospector.paramsFromRecord(TABLE_NAME, dbo, Set.of());
-        return jdbcClient.sql(sqlRecordIntrospector.insertSql(TABLE_NAME, parameters) + sqlRecordIntrospector.returning(parameters.keySet()))
+        return jdbcClient.sql(sqlRecordIntrospector.insertSql(TABLE_NAME, parameters)
+                        + "ON CONFLICT (provider_id, subject) DO NOTHING\n"
+                        + sqlRecordIntrospector.returning(parameters.keySet()))
                 .params(parameters)
                 .query(USER_IDENTITY_ROW_MAPPER)
-                .single();
+                .optional()
+                .orElseThrow(() -> new UserIdentityAlreadyExistsException(dbo.providerId(), dbo.subject()));
     }
 
     public UserIdentityDbo update(@NonNull UserIdentityDbo dbo) {
