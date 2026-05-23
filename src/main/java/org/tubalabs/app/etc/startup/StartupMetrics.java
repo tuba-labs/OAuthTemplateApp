@@ -1,4 +1,4 @@
-package org.tubalabs.app.etc.monitoring;
+package org.tubalabs.app.etc.startup;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
