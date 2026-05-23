@@ -12,6 +12,13 @@ spring:
       - optional:file:${local-config-override-folder}/secrets.properties
       - optional:file:${local-config-override-folder}/env_overrides.properties
 
+app:
+  security:
+    password:
+      pwned-passwords:
+        enabled: true
+        base-url: https://api.pwnedpasswords.com
+
 #logging:
   #level:
   #  org.springframework.security: TRACE

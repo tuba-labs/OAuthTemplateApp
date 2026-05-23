@@ -6,11 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.tubalabs.app.security.identity.ExternalIdentity;
-import org.tubalabs.app.users.identity.UserIdentityDbo;
-import org.tubalabs.app.users.identity.UserIdentityRepository;
-import org.tubalabs.app.users.login.UserLoginDbo;
-import org.tubalabs.app.users.login.UserLoginRepository;
+import org.tubalabs.app.users.externalidentity.ExternalIdentity;
+import org.tubalabs.app.users.identity.db.UserIdentityDbo;
+import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.login.db.UserLoginDbo;
+import org.tubalabs.app.users.login.db.UserLoginRepository;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
@@ -88,8 +88,6 @@ public class UserService {
 
         final UserIdentityDbo updatedIdentity = localIdentity.toBuilder()
                 .displayName(externalIdentity.displayName())
-                .givenName(externalIdentity.givenName())
-                .familyName(externalIdentity.familyName())
                 .email(externalIdentity.email())
                 .pictureUrl(externalIdentity.avatarUrl())
                 .build();
@@ -123,8 +121,6 @@ public class UserService {
                 .providerId(externalIdentity.providerId())
                 .subject(externalIdentity.subject())
                 .displayName(externalIdentity.displayName())
-                .givenName(externalIdentity.givenName())
-                .familyName(externalIdentity.familyName())
                 .email(externalIdentity.email())
                 .pictureUrl(externalIdentity.avatarUrl())
                 .build();

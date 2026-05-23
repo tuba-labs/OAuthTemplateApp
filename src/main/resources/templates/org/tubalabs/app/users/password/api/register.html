@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="page">
+<main class="panel">
+    <h1 class="page-title">Create account</h1>
+    <p class="page-subtitle">Create a local email and password account.</p>
+    <p class="message message-error" th:if="${registrationError}" th:text="${registrationError}"></p>
+
+    <form class="form" method="post" action="/register">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <label class="field">
+            <span>Display name</span>
+            <input name="displayName" autocomplete="name" required maxlength="80">
+        </label>
+        <label class="field">
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" required maxlength="320">
+        </label>
+        <label class="field">
+            <span>Password</span>
+            <input name="password"
+                   type="password"
+                   autocomplete="new-password"
+                   required
+                   minlength="12"
+                   maxlength="128"
+                   pattern="(?=.*[A-Za-z])(?=.*(?:[0-9]|[^\w\s])).{12,128}"
+                   title="Use 12 to 128 characters with at least one letter and one number or symbol."
+                   aria-describedby="passwordRequirements">
+            <p class="field-help" id="passwordRequirements">
+                Use 12 to 128 characters with at least one letter and one number or symbol.
+                It will also be checked against known breached passwords when you submit.
+            </p>
+        </label>
+        <label class="field">
+            <span>Confirm password</span>
+            <input name="passwordConfirmation"
+                   type="password"
+                   autocomplete="new-password"
+                   required
+                   minlength="12"
+                   maxlength="128">
+        </label>
+
+        <button class="button" type="submit">Create account</button>
+    </form>
+
+    <div class="links">
+        <a href="/login">Back to sign in</a>
+    </div>
+</main>
+</body>
+</html>

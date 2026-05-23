@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign in</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="page">
+<main class="panel panel-wide">
+    <div class="panel-header">
+        <div>
+            <h1 class="page-title">Welcome</h1>
+            <p class="page-subtitle">Choose a sign in method.</p>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Use light theme">
+            <span class="theme-toggle-track" aria-hidden="true">
+                <span class="theme-toggle-thumb"></span>
+            </span>
+        </button>
+    </div>
+
+    <section>
+        <ul class="login-options">
+            <li th:each="option : ${loginOptions}">
+                <a class="login-option" th:href="${option.href}" th:text="${option.label}">Continue</a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

@@ -17,14 +17,14 @@ CREATE TABLE user_identity
     subject      VARCHAR(255) NOT NULL,
 
     display_name VARCHAR(255),
-    given_name   VARCHAR(255),
-    family_name  VARCHAR(255),
     email        VARCHAR(320),
     picture_url  TEXT,
 
     CONSTRAINT user_identity_provider_subject_uq
         UNIQUE (provider_id, subject)
 );
+
+
 
 CREATE INDEX user_identity_user_id_idx
     ON user_identity (user_id);
@@ -64,8 +64,19 @@ CREATE TABLE user_profile
     created      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     display_name VARCHAR(255),
-    given_name   VARCHAR(255),
-    family_name  VARCHAR(255),
     email        VARCHAR(320),
     picture_url  VARCHAR(2000)
+);
+
+
+CREATE TABLE user_password_credential
+(
+    user_id       UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+    modified      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    email         VARCHAR(320) NOT NULL,
+    password_hash TEXT         NOT NULL,
+
+    CONSTRAINT user_password_credential_email_uq
+        UNIQUE (email)
 );

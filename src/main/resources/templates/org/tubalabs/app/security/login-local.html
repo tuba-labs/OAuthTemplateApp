@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email and password sign in</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="page">
+<main class="panel">
+    <h1 class="page-title">Email and password</h1>
+    <p class="page-subtitle">Sign in with your local account.</p>
+    <p class="message message-error" th:if="${hasLoginError}">Invalid email or password.</p>
+    <p class="message message-success" th:if="${registrationComplete}">Account created. You can sign in now.</p>
+
+    <form class="form" method="post" action="/login/local">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <label class="field">
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" required maxlength="320">
+        </label>
+        <label class="field">
+            <span>Password</span>
+            <input name="password" type="password" autocomplete="current-password" required>
+        </label>
+
+        <button class="button" type="submit">Sign in</button>
+    </form>
+
+    <div class="links">
+        <a href="/register">Create account</a>
+        <a href="/login">Use another sign in method</a>
+    </div>
+</main>
+</body>
+</html>
