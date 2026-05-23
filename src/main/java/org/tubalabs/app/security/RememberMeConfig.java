@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.security;
+package org.tubalabs.app.security;
 
 import lombok.NonNull;
 import org.springframework.context.annotation.Bean;
@@ -7,8 +7,6 @@ import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
-import org.tubalabs.app.security.RememberLoginProperties;
-import org.tubalabs.app.security.RememberedUserDetailsService;
 
 import javax.sql.DataSource;
 import java.util.UUID;
