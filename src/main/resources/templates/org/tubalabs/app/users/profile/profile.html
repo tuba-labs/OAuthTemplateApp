@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-page">
+<div th:replace="~{org/tubalabs/app/navigation/menu :: authenticatedMenu}"></div>
+<main class="app-content">
+<section class="panel panel-wide">
+    <h1 class="page-title">Profile</h1>
+    <form class="profile-header-logout-form"
+          method="post"
+          action="/logout"
+          onsubmit="return confirm('Log out?');">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <button class="text-link-button" type="submit">Logout</button>
+    </form>
+    <p class="page-subtitle">Manage the information shown for your account.</p>
+    <p class="message message-success" th:if="${profileSaved}">Profile saved.</p>
+
+    <form id="profileForm" class="form" method="post" action="/profile" th:object="${profileForm}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <label class="field">
+            <span>Display name</span>
+            <input th:field="*{displayName}" autocomplete="name" required maxlength="80">
+            <span class="field-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
+        </label>
+        <div class="field">
+            <span>Email</span>
+            <output class="readonly-value" th:text="${profileEmail} ?: 'Not provided'">person@example.com</output>
+        </div>
+        <label class="field">
+            <span>Picture URL</span>
+            <input th:field="*{pictureUrl}" type="url" autocomplete="photo" maxlength="2000">
+            <span class="field-error" th:if="${#fields.hasErrors('pictureUrl')}" th:errors="*{pictureUrl}"></span>
+        </label>
+    </form>
+
+    <div class="profile-actions">
+        <button class="button" type="submit" form="profileForm">Save profile</button>
+    </div>
+</section>
+</main>
+</body>
+</html>

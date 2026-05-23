@@ -40,4 +40,25 @@ public class UserProfileRepository {
                 .single();
     }
 
+    public UserProfileDbo update(@NonNull UserProfileDbo dbo) {
+        return jdbcClient.sql("""
+                        UPDATE user_profile
+                        SET
+                        display_name = :display_name,
+                        picture_url = :picture_url,
+                        modified = CURRENT_TIMESTAMP
+                        WHERE user_id = :user_id
+                        RETURNING
+                        user_id,
+                        display_name,
+                        email,
+                        picture_url
+                """)
+                .param("user_id", dbo.userId())
+                .param("display_name", dbo.displayName())
+                .param("picture_url", dbo.pictureUrl())
+                .query(USER_PROFILE_ROW_MAPPER)
+                .single();
+    }
+
 }
