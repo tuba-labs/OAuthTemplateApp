@@ -14,7 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import org.tubalabs.app.users.CurrentUserIdResolver;
-import org.tubalabs.app.users.password.LocalUserService;
+import org.tubalabs.app.users.identity.password.LocalUserService;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;

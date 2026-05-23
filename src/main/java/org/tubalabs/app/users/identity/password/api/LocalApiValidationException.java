@@ -1,0 +1,8 @@
+package org.tubalabs.app.users.identity.password.api;
+
+public class LocalApiValidationException extends IllegalArgumentException {
+
+    public LocalApiValidationException(String message) {
+        super(message);
+    }
+}

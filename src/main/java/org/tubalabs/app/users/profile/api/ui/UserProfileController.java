@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.tubalabs.app.users.CurrentUserIdResolver;
-import org.tubalabs.app.users.password.LocalUserService;
+import org.tubalabs.app.users.identity.password.LocalUserService;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
