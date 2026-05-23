@@ -1,4 +1,4 @@
-package org.tubalabs.app.navigation;
+package org.tubalabs.app.navigation.api.ui;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;

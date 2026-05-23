@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.RememberMeServices;
 import org.tubalabs.app.security.SecurityConfig;
+import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.password.LocalUserService;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
@@ -30,15 +31,15 @@ public class PasswordSecurityCustomizer {
             @Qualifier("passwordAuthenticationSuccessHandler") @NonNull AuthenticationSuccessHandler handler) {
         return http -> http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login/local", "/register", "/api/local-users", "/api/local-login")
+                        .requestMatchers(SecurityAllowedPaths.PASSWORD_PUBLIC_MATCHERS)
                         .permitAll())
                 .formLogin(form -> form
-                        .loginPage("/login/local")
-                        .loginProcessingUrl("/login/local")
+                        .loginPage(SecurityAllowedPaths.LOCAL_LOGIN_PATH)
+                        .loginProcessingUrl(SecurityAllowedPaths.LOCAL_LOGIN_PATH)
                         .usernameParameter("email")
                         .passwordParameter("password")
                         .successHandler(handler)
-                        .failureUrl("/login/local?error")
+                        .failureUrl(SecurityAllowedPaths.LOCAL_LOGIN_PATH + "?error")
                         .permitAll())
                 .rememberMe(rememberMe -> rememberMe
                         .rememberMeServices(rememberMeServices));

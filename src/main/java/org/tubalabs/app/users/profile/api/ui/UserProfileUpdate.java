@@ -1,7 +1,8 @@
-package org.tubalabs.app.users.profile;
+package org.tubalabs.app.users.profile.api.ui;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.tubalabs.app.users.profile.validation.ValidDisplayName;
 
 public record UserProfileUpdate(
         @NotBlank(message = "Display name is required")

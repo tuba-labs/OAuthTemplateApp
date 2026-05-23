@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.profile;
+package org.tubalabs.app.users.profile.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Profile</title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/profile-picture.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-page">
@@ -22,24 +23,39 @@
     <p class="page-subtitle">Manage the information shown for your account.</p>
     <p class="message message-success" th:if="${profileSaved}">Profile saved.</p>
 
-    <form id="profileForm" class="form" method="post" action="/profile" th:object="${profileForm}">
+    <form id="profileForm" class="form" method="post" action="/profile" enctype="multipart/form-data" th:object="${profileForm}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
+        <label class="field profile-picture-field">
+            <span>Profile picture</span>
+            <span class="profile-picture-control" data-profile-picture-control>
+                <img class="profile-picture-image"
+                     th:if="${profilePictureUrl}"
+                     th:src="${profilePictureUrl}"
+                     alt=""
+                     data-profile-picture-preview>
+                <span class="profile-picture-placeholder"
+                      th:unless="${profilePictureUrl}"
+                      data-profile-picture-placeholder>Profile</span>
+                <input class="profile-picture-input"
+                       name="pictureFile"
+                       type="file"
+                       accept="image/png,image/jpeg,image/gif"
+                       data-profile-picture-input>
+            </span>
+            <span class="field-error" th:if="${#fields.hasErrors('pictureUrl')}" th:errors="*{pictureUrl}"></span>
+        </label>
+        <div class="field">
+            <span>Username</span>
+            <output class="readonly-value" th:text="${profileEmail} ?: 'Not provided'">person@example.com</output>
+        </div>
         <label class="field">
             <span>Display name</span>
             <input th:field="*{displayName}" autocomplete="name" required minlength="3" maxlength="80" aria-describedby="displayNameRequirements">
             <p class="field-help" id="displayNameRequirements">Use at least 3 letters or numbers.</p>
             <span class="field-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
         </label>
-        <div class="field">
-            <span>Email</span>
-            <output class="readonly-value" th:text="${profileEmail} ?: 'Not provided'">person@example.com</output>
-        </div>
-        <label class="field">
-            <span>Picture URL</span>
-            <input th:field="*{pictureUrl}" type="url" autocomplete="photo" maxlength="2000">
-            <span class="field-error" th:if="${#fields.hasErrors('pictureUrl')}" th:errors="*{pictureUrl}"></span>
-        </label>
+
     </form>
 
     <div class="profile-actions">

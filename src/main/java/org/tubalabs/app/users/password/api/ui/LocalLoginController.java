@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.api;
+package org.tubalabs.app.users.password.api.ui;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

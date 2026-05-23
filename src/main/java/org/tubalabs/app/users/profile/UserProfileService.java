@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.tubalabs.app.users.externalidentity.ExternalIdentity;
+import org.tubalabs.app.users.profile.api.ui.UserProfileUpdate;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.db.UserProfileRepository;
 
@@ -30,8 +31,9 @@ public class UserProfileService {
     }
 
     public UserProfileDbo createInitialProfile(@NonNull UUID userId,
-                                               @NonNull String displayName) {
-        return createInitialProfile(userId, displayName, null, null);
+                                               @NonNull String displayName,
+                                               @NonNull String email) {
+        return createInitialProfile(userId, displayName, email, null);
     }
 
     public UserProfileDbo createInitialProfile(@NonNull UUID userId,

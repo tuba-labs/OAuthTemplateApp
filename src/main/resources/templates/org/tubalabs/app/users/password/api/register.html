@@ -26,13 +26,13 @@
                    type="password"
                    autocomplete="new-password"
                    required
-                   minlength="12"
+                   minlength="8"
                    maxlength="128"
-                   pattern="(?=.*[A-Za-z])(?=.*(?:[0-9]|[^\w\s])).{12,128}"
-                   title="Use 12 to 128 characters with at least one letter and one number or symbol."
+                   pattern="(?=.*[A-Za-z])(?=.*(?:[0-9]|[^\w\s])).{8,128}"
+                   title="At least 8 characters with one letter and one number or symbol."
                    aria-describedby="passwordRequirements">
             <p class="field-help" id="passwordRequirements">
-                Use 12 to 128 characters with at least one letter and one number or symbol.
+                Use 8 to 128 characters with at least one letter and one number or symbol.
                 It will also be checked against known breached passwords when you submit.
             </p>
         </label>
@@ -42,7 +42,7 @@
                    type="password"
                    autocomplete="new-password"
                    required
-                   minlength="12"
+                   minlength="8"
                    maxlength="128">
         </label>
         <button class="button" type="submit">Create account</button>

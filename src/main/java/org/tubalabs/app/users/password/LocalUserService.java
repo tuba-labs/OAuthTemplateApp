@@ -58,26 +58,33 @@ public class LocalUserService {
         }
 
         final String normalizedEmail = emailNormalizer.normalize(registration.email());
-        final String displayName = optionalTrimmed(registration.displayName());
 
         final UUID userId = UUID.randomUUID();
         final UUID identityId = UUID.randomUUID();
 
-        @Cleanup
-        MDC.MDCCloseable ignore = MDC.putCloseable("userId", userId.toString());
+        @Cleanup final MDC.MDCCloseable ignore = MDC.putCloseable("userId", userId.toString());
 
         log.info("Creating new local user");
 
         userRepository.insert(new UserDbo(userId));
-        insertLocalIdentity(identityId, userId, normalizedEmail, displayName);
-        userProfileService.createInitialProfile(userId, displayName, normalizedEmail, null);
-        userPasswordCredentialRepository.insert(UserPasswordCredentialDbo.builder()
-                .userId(userId)
-                .email(normalizedEmail)
-                .passwordHash(passwordEncoder.encode(registration.password()))
-                .build());
+        insertLocalIdentity(identityId, userId, normalizedEmail);
+        userProfileService.createInitialProfile(
+                userId,
+                emailToDisplayName(normalizedEmail),
+                normalizedEmail);
+        userPasswordCredentialRepository.insert(
+                UserPasswordCredentialDbo.builder()
+                        .userId(userId)
+                        .email(normalizedEmail)
+                        .passwordHash(passwordEncoder.encode(registration.password()))
+                        .build());
 
         return CreateResult.created(userId);
+    }
+
+    private String emailToDisplayName(@NonNull String normalizedEmail) {
+        final String localPart = normalizedEmail.substring(0, normalizedEmail.indexOf('@'));
+        return Character.toUpperCase(localPart.charAt(0)) + localPart.substring(1);
     }
 
     @Transactional
@@ -126,27 +133,18 @@ public class LocalUserService {
 
     private void insertLocalIdentity(UUID identityId,
                                      UUID userId,
-                                     String normalizedEmail,
-                                     String displayName) {
+                                     String normalizedEmail) {
         try {
             userIdentityRepository.insert(UserIdentityDbo.builder()
                     .id(identityId)
                     .userId(userId)
                     .providerId(LOCAL_PROVIDER_ID)
                     .subject(normalizedEmail)
-                    .displayName(displayName)
                     .email(normalizedEmail)
                     .build());
         } catch (UserIdentityAlreadyExistsException exception) {
             throw new LocalUserAlreadyExistsException(normalizedEmail, exception);
         }
-    }
-
-    private String optionalTrimmed(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
     }
 
     private UserLoginDbo newLogin(

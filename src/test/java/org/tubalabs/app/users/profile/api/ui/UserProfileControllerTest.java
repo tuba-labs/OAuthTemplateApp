@@ -1,8 +1,9 @@
-package org.tubalabs.app.users.profile;
+package org.tubalabs.app.users.profile.api.ui;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.ui.ExtendedModelMap;
@@ -12,6 +13,10 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import org.tubalabs.app.users.CurrentUserIdResolver;
+import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
+import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
+import org.tubalabs.app.users.profile.config.ProfileSetupSession;
+import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 
 import java.util.List;
@@ -29,17 +34,20 @@ class UserProfileControllerTest {
     private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";
     private static final String PROFILE_FORM_ATTRIBUTE = "profileForm";
     private static final String PROFILE_EMAIL_ATTRIBUTE = "profileEmail";
+    private static final String PROFILE_PICTURE_ATTRIBUTE = "profilePictureUrl";
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String DISPLAY_NAME = "Person";
     private static final String EMAIL = "person@example.com";
     private static final String PICTURE_URL = "https://example.com/avatar.png";
+    private static final String UPLOADED_PICTURE_URL = "/profile-pictures/22222222-2222-2222-2222-222222222222.jpg";
 
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
     private final UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
     private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
+    private final ProfilePictureStorageService profilePictureStorageService = Mockito.mock(ProfilePictureStorageService.class);
     private final UserProfileController controller =
-            new UserProfileController(currentUserIdResolver, userProfileService, profileSetupSession);
+            new UserProfileController(currentUserIdResolver, userProfileService, profileSetupSession, profilePictureStorageService);
     private final Authentication authentication =
             UsernamePasswordAuthenticationToken.authenticated("person", null, List.of());
 
@@ -53,40 +61,89 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_VIEW);
         assertThat(model.getAttribute(PROFILE_EMAIL_ATTRIBUTE)).isEqualTo(EMAIL);
+        assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
         assertThat(model.getAttribute(PROFILE_FORM_ATTRIBUTE))
                 .isEqualTo(new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL));
     }
 
     @Test
-    void updatesCurrentProfile() {
+    void updatesCurrentProfileAndKeepsCurrentPictureWhenNoPictureIsUploaded() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
-        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, null);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = emptyPictureFile();
 
-        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
+        final String view = controller.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
 
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(PROFILE_SAVED_ATTRIBUTE)).isEqualTo(Boolean.TRUE);
-        verify(userProfileService).updateProfile(USER_ID, profileForm);
+        verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL));
+    }
+
+    @Test
+    void updatesCurrentProfileWithUploadedPictureUrl() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, null);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
+        final Model model = new ExtendedModelMap();
+        final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = pngPictureFile();
+        when(profilePictureStorageService.store(USER_ID, pictureFile)).thenReturn(UPLOADED_PICTURE_URL);
+
+        final String view = controller.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
+
+        assertThat(view).isEqualTo(PROFILE_REDIRECT);
+        verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, UPLOADED_PICTURE_URL));
+    }
+
+    @Test
+    void doesNotUpdateWhenPictureUploadFails() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, null);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
+        final Model model = new ExtendedModelMap();
+        final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = pngPictureFile();
+        when(profilePictureStorageService.store(USER_ID, pictureFile))
+                .thenThrow(new ProfilePictureStorageException("Bad image"));
+
+        final String view = controller.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
+
+        assertThat(view).isEqualTo(PROFILE_VIEW);
+        assertThat(model.getAttribute(PROFILE_EMAIL_ATTRIBUTE)).isEqualTo(EMAIL);
+        assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
+        assertThat(bindingResult.getFieldError("pictureUrl").getDefaultMessage()).isEqualTo("Bad image");
+        verify(userProfileService, never()).updateProfile(Mockito.any(), Mockito.any());
     }
 
     @Test
     void redirectsToRememberLoginAfterRequiredProfileSetup() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
-        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, null);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = emptyPictureFile();
         when(profileSetupSession.isProfileSetupRequired(request)).thenReturn(true);
 
-        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
+        final String view = controller.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
 
         assertThat(view).isEqualTo(REMEMBER_LOGIN_REDIRECT);
-        verify(userProfileService).updateProfile(USER_ID, profileForm);
+        verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL));
         verify(profileSetupSession).completeProfileSetup(request);
     }
 
@@ -100,13 +157,25 @@ class UserProfileControllerTest {
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = emptyPictureFile();
 
-        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
+        final String view = controller.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
 
         assertThat(view).isEqualTo(PROFILE_VIEW);
         assertThat(model.getAttribute(PROFILE_EMAIL_ATTRIBUTE)).isEqualTo(EMAIL);
+        assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
         verify(userProfileService, never()).updateProfile(Mockito.any(), Mockito.any());
         verify(profileSetupSession, never()).completeProfileSetup(Mockito.any());
+    }
+
+    private MockMultipartFile emptyPictureFile() {
+        return new MockMultipartFile("pictureFile", "", "application/octet-stream", new byte[0]);
+    }
+
+    private MockMultipartFile pngPictureFile() {
+        return new MockMultipartFile("pictureFile", "avatar.png", "image/png", new byte[]{
+                (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00});
     }
 
     private UserProfileDbo profile() {

@@ -1,4 +1,4 @@
-package org.tubalabs.app.security;
+package org.tubalabs.app.security.api.ui;
 
 import lombok.NonNull;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;

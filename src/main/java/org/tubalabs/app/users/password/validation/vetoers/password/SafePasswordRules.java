@@ -2,7 +2,7 @@ package org.tubalabs.app.users.password.validation.vetoers.password;
 
 public final class SafePasswordRules {
 
-    private static final int MINIMUM_LENGTH = 12;
+    private static final int MINIMUM_LENGTH = 8;
     private static final int MAXIMUM_LENGTH = 128;
 
     private SafePasswordRules() {

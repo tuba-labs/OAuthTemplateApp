@@ -1,4 +1,4 @@
-package org.tubalabs.app.navigation;
+package org.tubalabs.app.navigation.api.ui;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

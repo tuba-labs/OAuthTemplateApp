@@ -12,13 +12,14 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.tubalabs.app.security.SecurityConfig;
+import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.UserService;
 import org.tubalabs.app.users.externalidentity.ExternalIdentity;
 import org.tubalabs.app.users.externalidentity.providers.ExternalIdentityProvider;
 import org.tubalabs.app.users.externalidentity.providers.ExternalIdentityProviders;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
-import org.tubalabs.app.users.profile.ProfileSetupSession;
+import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.Objects;
 
@@ -37,10 +38,10 @@ public class Oauth2SecurityCustomizer {
             @Qualifier("oauthAuthenticationSuccessHandler") @NonNull AuthenticationSuccessHandler handler) {
         return http -> http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/authorization/**")
+                        .requestMatchers(SecurityAllowedPaths.OAUTH2_PUBLIC_MATCHERS)
                         .permitAll())
                 .oauth2Login(oauth -> oauth
-                        .loginPage("/login")
+                        .loginPage(SecurityAllowedPaths.LOGIN_PATH)
                         .successHandler(handler));
 
     }

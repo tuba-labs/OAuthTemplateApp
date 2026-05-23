@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.api.ui;
+package org.tubalabs.app.users.password.api;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -16,7 +16,6 @@ import org.tubalabs.app.users.password.LocalEmailNormalizer;
 import org.tubalabs.app.users.password.LocalUserService;
 import org.tubalabs.app.users.password.LocalUserRegistration;
 import org.tubalabs.app.users.password.validation.SafePassword;
-import org.tubalabs.app.users.profile.ValidDisplayName;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -39,7 +38,7 @@ public class LocalRegistrationApiController {
 
         final String normalizedEmail = emailNormalizer.normalize(request.email());
         final CreateResult createResult = localUserService.register(new LocalUserRegistration(
-                normalizedEmail, request.password(), request.displayName()));
+                normalizedEmail, request.password()));
         if (createResult.vetoed()) {
             throw new LocalApiValidationException(createResult.firstVeto().englishReason());
         }
@@ -55,11 +54,7 @@ public class LocalRegistrationApiController {
             @SafePassword
             String password,
             @NotBlank(message = "Password confirmation is required")
-            String passwordConfirmation,
-            @NotBlank(message = "Display name is required")
-            @ValidDisplayName
-            @Size(max = 80, message = "Display name must be 80 characters or fewer")
-            String displayName) {
+            String passwordConfirmation) {
     }
 
     public record LocalRegistrationResponse(@NonNull UUID userId, @NonNull String email) {

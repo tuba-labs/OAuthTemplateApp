@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.api;
+package org.tubalabs.app.users.password.api.ui;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,7 +19,7 @@ import org.tubalabs.app.users.password.LocalUserService;
 import org.tubalabs.app.users.password.LocalUserRegistration;
 import org.tubalabs.app.users.password.security.LocalSessionAuthentication;
 import org.tubalabs.app.users.password.validation.SafePassword;
-import org.tubalabs.app.users.profile.ProfileSetupSession;
+import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.Objects;
 
@@ -59,7 +59,7 @@ public class LocalRegistrationController {
         }
 
         try {
-            final LocalUserRegistration registration = new LocalUserRegistration(form.email(), form.password(), null);
+            final LocalUserRegistration registration = new LocalUserRegistration(form.email(), form.password());
             final CreateResult createResult = localUserService.register(registration);
             if (createResult.vetoed()) {
                 addRegistrationError(redirectAttributes, createResult.firstVeto().englishReason());

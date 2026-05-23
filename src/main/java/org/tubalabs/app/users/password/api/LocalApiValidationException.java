@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.api.ui;
+package org.tubalabs.app.users.password.api;
 
 public class LocalApiValidationException extends IllegalArgumentException {
 

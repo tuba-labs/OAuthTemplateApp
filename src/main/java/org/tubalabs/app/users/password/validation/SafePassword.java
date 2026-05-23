@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface SafePassword {
 
-    String MESSAGE = "Password must be 12 to 128 characters and include at least one letter and one number or symbol";
+    String MESSAGE = "Password must be 10 to 128 characters and include at least one letter and one number or symbol";
 
     String message() default MESSAGE;
 

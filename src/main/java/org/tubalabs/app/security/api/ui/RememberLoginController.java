@@ -1,4 +1,4 @@
-package org.tubalabs.app.security;
+package org.tubalabs.app.security.api.ui;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.tubalabs.app.security.RememberLoginPromptService;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 
 import java.util.UUID;

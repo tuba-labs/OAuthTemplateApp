@@ -74,7 +74,7 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     @Test
     void registersAndLogsInLocalUser() {
         final CreateResult createResult = localUserService.register(new LocalUserRegistration(
-                MIXED_CASE_EMAIL, PASSWORD, DISPLAY_NAME));
+                MIXED_CASE_EMAIL, PASSWORD));
 
         final LoginResult loginResult = localUserService.login(MIXED_CASE_EMAIL, PASSWORD, CLIENT_IP, USER_AGENT);
         final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByEmail(EMAIL).orElseThrow();
@@ -93,18 +93,18 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     }
 
     @Test
-    void registersLocalUserWithoutInitialDisplayName() {
-        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD, null));
+    void registersLocalUserWithEmailDerivedDisplayName() {
+        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
 
         final UserProfileDbo profile = userProfileRepository.findByUserId(createResult.id()).orElseThrow();
 
-        assertThat(profile.displayName()).isNull();
+        assertThat(profile.displayName()).isEqualTo(DISPLAY_NAME);
         assertThat(profile.email()).isEqualTo(EMAIL);
     }
 
     @Test
     void rejectsLoginWithWrongPassword() {
-        localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD, DISPLAY_NAME));
+        localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
 
         assertThatThrownBy(() -> localUserService.login(EMAIL, WRONG_PASSWORD, CLIENT_IP, USER_AGENT))
                 .isInstanceOf(BadCredentialsException.class);
@@ -112,10 +112,10 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
 
     @Test
     void rejectsDuplicateLocalEmail() {
-        localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD, DISPLAY_NAME));
+        localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
 
         assertThatThrownBy(() -> localUserService.register(new LocalUserRegistration(
-                MIXED_CASE_EMAIL, PASSWORD, DISPLAY_NAME)))
+                MIXED_CASE_EMAIL, PASSWORD)))
                 .isInstanceOf(LocalUserAlreadyExistsException.class);
     }
 

@@ -13,6 +13,14 @@ spring:
       - optional:file:${local-config-override-folder}/env_overrides.properties
 
 app:
+  profile:
+    pictures:
+      storage-dir: ${PROFILE_PICTURE_STORAGE_DIR:${user.home}/apps/${applicationName}/profile-pictures}
+      max-bytes: ${PROFILE_PICTURE_MAX_BYTES:5242880}
+      target-size-pixels: ${PROFILE_PICTURE_TARGET_SIZE_PIXELS:600}
+      thumbnail-size-pixels: ${PROFILE_PICTURE_THUMBNAIL_SIZE_PIXELS:100}
+      max-width-pixels: ${PROFILE_PICTURE_MAX_WIDTH_PIXELS:4096}
+      max-height-pixels: ${PROFILE_PICTURE_MAX_HEIGHT_PIXELS:4096}
   security:
     remember-login:
       prompt-skip-duration: ${REMEMBER_LOGIN_PROMPT_SKIP_DURATION:30d}

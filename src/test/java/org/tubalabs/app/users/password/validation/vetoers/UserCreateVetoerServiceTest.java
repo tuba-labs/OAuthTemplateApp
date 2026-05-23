@@ -11,12 +11,11 @@ class UserCreateVetoerServiceTest {
 
     private static final String EMAIL = "person@example.com";
     private static final String PASSWORD = "ValidPassword1";
-    private static final String DISPLAY_NAME = "Person";
     private static final String VETO_ID = "pwned-password";
     private static final String VETO_REASON = "Password has appeared in a known breach";
 
     private static final LocalUserRegistration REGISTRATION =
-            new LocalUserRegistration(EMAIL, PASSWORD, DISPLAY_NAME);
+            new LocalUserRegistration(EMAIL, PASSWORD);
 
     @Test
     void returnsOnlyNegativeValidatorResults() {

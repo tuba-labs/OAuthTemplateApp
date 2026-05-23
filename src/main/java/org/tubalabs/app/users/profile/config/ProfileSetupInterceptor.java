@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.profile;
+package org.tubalabs.app.users.profile.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,26 +9,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.CurrentUserIdResolver;
+import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 public class ProfileSetupInterceptor implements HandlerInterceptor {
-
-    private static final String PROFILE_PATH = "/profile";
-    private static final List<String> ALLOWED_PREFIXES = List.of(
-            "/css/",
-            "/js/",
-            "/actuator/",
-            "/api/",
-            "/oauth2/",
-            "/login",
-            "/register",
-            "/error");
 
     private final @NonNull ProfileSetupSession profileSetupSession;
     private final @NonNull ProfileSetupRequirementService profileSetupRequirementService;
@@ -41,7 +31,7 @@ public class ProfileSetupInterceptor implements HandlerInterceptor {
         if (isAllowed(request) || !isSetupRequired(request)) {
             return true;
         }
-        response.sendRedirect(request.getContextPath() + PROFILE_PATH);
+        response.sendRedirect(request.getContextPath() + SecurityAllowedPaths.PROFILE_PATH);
         return false;
     }
 
@@ -62,11 +52,7 @@ public class ProfileSetupInterceptor implements HandlerInterceptor {
     }
 
     private boolean isAllowed(HttpServletRequest request) {
-        final String path = requestPath(request);
-        return PROFILE_PATH.equals(path)
-                || path.startsWith(PROFILE_PATH + "/")
-                || "/logout".equals(path)
-                || ALLOWED_PREFIXES.stream().anyMatch(path::startsWith);
+        return SecurityAllowedPaths.isProfileSetupAllowedPath(requestPath(request));
     }
 
     private String requestPath(HttpServletRequest request) {

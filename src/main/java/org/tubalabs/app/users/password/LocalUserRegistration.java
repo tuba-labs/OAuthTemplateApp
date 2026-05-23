@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.NonNull;
 import org.tubalabs.app.users.password.validation.SafePassword;
-import org.tubalabs.app.users.profile.ValidDisplayName;
 
 public record LocalUserRegistration(
         @NonNull
@@ -16,8 +15,5 @@ public record LocalUserRegistration(
         @NonNull
         @NotBlank(message = "Password is required")
         @SafePassword
-        String password,
-        @ValidDisplayName
-        @Size(max = 80, message = "Display name must be 80 characters or fewer")
-        String displayName) {
+        String password) {
 }

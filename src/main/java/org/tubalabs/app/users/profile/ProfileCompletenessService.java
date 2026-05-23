@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
+import org.tubalabs.app.users.profile.validation.DisplayNameValidator;
 
 import java.util.NoSuchElementException;
 import java.util.UUID;

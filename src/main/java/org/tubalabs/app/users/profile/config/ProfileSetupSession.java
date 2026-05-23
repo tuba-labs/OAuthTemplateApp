@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.profile;
+package org.tubalabs.app.users.profile.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;

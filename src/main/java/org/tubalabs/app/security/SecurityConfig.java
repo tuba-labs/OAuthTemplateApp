@@ -25,13 +25,13 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(final HttpSecurity http) {
         final HttpSecurity sec = http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers(SecurityAllowedPaths.CSRF_IGNORED_MATCHERS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/css/**", "/js/**")
+                        .requestMatchers(SecurityAllowedPaths.CORE_PUBLIC_MATCHERS)
                         .permitAll())
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
-                .logout(logout -> logout.logoutSuccessUrl("/login"));
+                        .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(SecurityAllowedPaths.LOGIN_PATH)))
+                .logout(logout -> logout.logoutSuccessUrl(SecurityAllowedPaths.LOGIN_PATH));
 
         for (HttpSecurityCustomizer customizer : customizers) {
             customizer.customize(sec);

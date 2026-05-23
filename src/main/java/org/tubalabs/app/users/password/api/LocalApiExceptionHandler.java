@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.password.api.ui;
+package org.tubalabs.app.users.password.api;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;

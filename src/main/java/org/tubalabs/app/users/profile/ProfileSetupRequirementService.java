@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.UUID;
 
