@@ -76,7 +76,6 @@ class AuthenticatedNavigationModelAdviceTest {
         return UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(displayName)
-                .email(EMAIL)
                 .build();
     }
 }

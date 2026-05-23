@@ -51,6 +51,7 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     private static final String EMAIL = "person@example.com";
     private static final String MIXED_CASE_EMAIL = "  Person@Example.COM  ";
     private static final String PASSWORD = "ValidPassword1";
+    private static final String NEW_PASSWORD = "NewValidPassword1";
     private static final String WRONG_PASSWORD = "WrongPassword1";
     private static final String DISPLAY_NAME = "Person";
     private static final String CLIENT_IP = "127.0.0.1";
@@ -88,7 +89,6 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         assertThat(credential.userId()).isEqualTo(createResult.id());
         assertThat(passwordEncoder.matches(PASSWORD, credential.passwordHash())).isTrue();
         assertThat(profile.displayName()).isEqualTo(DISPLAY_NAME);
-        assertThat(profile.email()).isEqualTo(EMAIL);
         assertThat(loginCount(createResult.id())).isEqualTo(1);
     }
 
@@ -99,7 +99,27 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         final UserProfileDbo profile = userProfileRepository.findByUserId(createResult.id()).orElseThrow();
 
         assertThat(profile.displayName()).isEqualTo(DISPLAY_NAME);
-        assertThat(profile.email()).isEqualTo(EMAIL);
+        assertThat(localUserService.loginName(createResult.id())).contains(EMAIL);
+    }
+
+    @Test
+    void changesLocalPassword() {
+        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
+
+        localUserService.changePassword(createResult.id(), PASSWORD, NEW_PASSWORD);
+
+        final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByEmail(EMAIL).orElseThrow();
+        assertThat(passwordEncoder.matches(NEW_PASSWORD, credential.passwordHash())).isTrue();
+        assertThat(passwordEncoder.matches(PASSWORD, credential.passwordHash())).isFalse();
+        assertThat(localUserService.login(EMAIL, NEW_PASSWORD, CLIENT_IP, USER_AGENT).userId()).isEqualTo(createResult.id());
+    }
+
+    @Test
+    void rejectsPasswordChangeWithWrongCurrentPassword() {
+        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
+
+        assertThatThrownBy(() -> localUserService.changePassword(createResult.id(), WRONG_PASSWORD, NEW_PASSWORD))
+                .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test

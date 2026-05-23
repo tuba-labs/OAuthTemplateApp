@@ -23,8 +23,6 @@ class UserProfileRepositoryTest extends AbstractJdbcTestBaseTestClass {
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String DISPLAY_NAME = "Person";
     private static final String UPDATED_DISPLAY_NAME = "Updated Person";
-    private static final String EMAIL = "person@example.com";
-    private static final String POSTED_EMAIL = "posted@example.com";
     private static final String PICTURE_URL = "https://example.com/avatar.png";
     private static final String UPDATED_PICTURE_URL = "https://example.com/updated-avatar.png";
 
@@ -40,7 +38,6 @@ class UserProfileRepositoryTest extends AbstractJdbcTestBaseTestClass {
         final UserProfileDbo profile = UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(DISPLAY_NAME)
-                .email(EMAIL)
                 .pictureUrl(PICTURE_URL)
                 .build();
 
@@ -56,19 +53,16 @@ class UserProfileRepositoryTest extends AbstractJdbcTestBaseTestClass {
         userProfileRepository.insert(UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(DISPLAY_NAME)
-                .email(EMAIL)
                 .pictureUrl(PICTURE_URL)
                 .build());
         final UserProfileDbo updatedProfile = UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(UPDATED_DISPLAY_NAME)
-                .email(POSTED_EMAIL)
                 .pictureUrl(UPDATED_PICTURE_URL)
                 .build();
         final UserProfileDbo expectedProfile = UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(UPDATED_DISPLAY_NAME)
-                .email(EMAIL)
                 .pictureUrl(UPDATED_PICTURE_URL)
                 .build();
 

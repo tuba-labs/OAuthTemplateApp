@@ -10,6 +10,5 @@ public record UserProfileDbo(
         @NonNull UUID userId,
 
         String displayName,
-        String email,
         String pictureUrl) {
 }

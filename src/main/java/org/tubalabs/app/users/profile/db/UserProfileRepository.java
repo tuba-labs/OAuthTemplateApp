@@ -51,7 +51,6 @@ public class UserProfileRepository {
                         RETURNING
                         user_id,
                         display_name,
-                        email,
                         picture_url
                 """)
                 .param("user_id", dbo.userId())

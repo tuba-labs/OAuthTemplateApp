@@ -29,6 +29,7 @@ import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -70,8 +71,7 @@ public class LocalUserService {
         insertLocalIdentity(identityId, userId, normalizedEmail);
         userProfileService.createInitialProfile(
                 userId,
-                emailToDisplayName(normalizedEmail),
-                normalizedEmail);
+                emailToDisplayName(normalizedEmail));
         userPasswordCredentialRepository.insert(
                 UserPasswordCredentialDbo.builder()
                         .userId(userId)
@@ -85,6 +85,29 @@ public class LocalUserService {
     private String emailToDisplayName(@NonNull String normalizedEmail) {
         final String localPart = normalizedEmail.substring(0, normalizedEmail.indexOf('@'));
         return Character.toUpperCase(localPart.charAt(0)) + localPart.substring(1);
+    }
+
+    public Optional<String> loginName(@NonNull UUID userId) {
+        return userPasswordCredentialRepository.findByUserId(userId)
+                .map(UserPasswordCredentialDbo::email);
+    }
+
+    @Transactional
+    public void changePassword(@NonNull UUID userId, @NonNull String currentPassword, @NonNull String newPassword) {
+        final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Local account not found"));
+
+        if (!passwordEncoder.matches(currentPassword, credential.passwordHash())) {
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+
+        final List<CreationVetoResult> vetoes = userCreateVetoerService.getVetoes(
+                new LocalUserRegistration(credential.email(), newPassword));
+        if (!vetoes.isEmpty()) {
+            throw new IllegalArgumentException(vetoes.get(0).englishReason());
+        }
+
+        userPasswordCredentialRepository.updatePasswordHash(userId, passwordEncoder.encode(newPassword));
     }
 
     @Transactional

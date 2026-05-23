@@ -14,6 +14,9 @@ import org.tubalabs.app.users.profile.db.UserProfileRepository;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
+import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH;
+import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH_MESSAGE;
+
 @Service
 @Validated
 @RequiredArgsConstructor
@@ -26,24 +29,20 @@ public class UserProfileService {
         return createInitialProfile(
                 userId,
                 externalIdentity.displayName(),
-                externalIdentity.email(),
                 externalIdentity.avatarUrl());
     }
 
     public UserProfileDbo createInitialProfile(@NonNull UUID userId,
-                                               @NonNull String displayName,
-                                               @NonNull String email) {
-        return createInitialProfile(userId, displayName, email, null);
+                                               @NonNull String displayName) {
+        return createInitialProfile(userId, displayName, null);
     }
 
     public UserProfileDbo createInitialProfile(@NonNull UUID userId,
                                                String displayName,
-                                               String email,
                                                String pictureUrl) {
         final UserProfileDbo profile = UserProfileDbo.builder()
                 .userId(userId)
-                .displayName(displayName)
-                .email(email)
+                .displayName(initialDisplayName(displayName))
                 .pictureUrl(pictureUrl)
                 .build();
         return userProfileRepository.insert(profile);
@@ -56,11 +55,33 @@ public class UserProfileService {
 
     @Transactional
     public UserProfileDbo updateProfile(@NonNull UUID userId, @Valid @NonNull UserProfileUpdate update) {
+        validateDisplayNameLength(update.displayName());
         final UserProfileDbo profile = UserProfileDbo.builder()
                 .userId(userId)
                 .displayName(update.displayName())
                 .pictureUrl(update.pictureUrl())
                 .build();
         return userProfileRepository.update(profile);
+    }
+
+    private void validateDisplayNameLength(String displayName) {
+        if (displayName != null && displayName.length() > DISPLAY_NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException(DISPLAY_NAME_MAX_LENGTH_MESSAGE);
+        }
+    }
+
+    private String initialDisplayName(String displayName) {
+        if (displayName == null) {
+            return null;
+        }
+
+        final String trimmedDisplayName = displayName.trim();
+        if (trimmedDisplayName.isEmpty()) {
+            return null;
+        }
+        if (trimmedDisplayName.length() <= DISPLAY_NAME_MAX_LENGTH) {
+            return trimmedDisplayName;
+        }
+        return trimmedDisplayName.substring(0, DISPLAY_NAME_MAX_LENGTH);
     }
 }

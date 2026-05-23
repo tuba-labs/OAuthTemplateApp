@@ -28,6 +28,7 @@ class UserPasswordCredentialRepositoryTest extends AbstractJdbcTestBaseTestClass
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String EMAIL = "person@example.com";
     private static final String PASSWORD_HASH = "{noop}ValidPassword1";
+    private static final String UPDATED_PASSWORD_HASH = "{noop}NewValidPassword1";
 
     @Autowired
     private UserRepository userRepository;
@@ -47,5 +48,22 @@ class UserPasswordCredentialRepositoryTest extends AbstractJdbcTestBaseTestClass
         userPasswordCredentialRepository.insert(credential);
 
         assertThat(userPasswordCredentialRepository.findByEmail(EMAIL)).contains(credential);
+        assertThat(userPasswordCredentialRepository.findByUserId(USER_ID)).contains(credential);
+    }
+
+    @Test
+    void updatesPasswordHash() {
+        userRepository.insert(new UserDbo(USER_ID));
+        final UserPasswordCredentialDbo credential = UserPasswordCredentialDbo.builder()
+                .userId(USER_ID)
+                .email(EMAIL)
+                .passwordHash(PASSWORD_HASH)
+                .build();
+        userPasswordCredentialRepository.insert(credential);
+
+        userPasswordCredentialRepository.updatePasswordHash(USER_ID, UPDATED_PASSWORD_HASH);
+
+        assertThat(userPasswordCredentialRepository.findByUserId(USER_ID))
+                .contains(new UserPasswordCredentialDbo(USER_ID, EMAIL, UPDATED_PASSWORD_HASH));
     }
 }

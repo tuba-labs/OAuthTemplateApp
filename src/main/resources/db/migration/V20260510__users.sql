@@ -63,8 +63,7 @@ CREATE TABLE user_profile
     modified     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    display_name VARCHAR(255),
-    email        VARCHAR(320),
+    display_name VARCHAR(20),
     picture_url  VARCHAR(2000)
 );
 

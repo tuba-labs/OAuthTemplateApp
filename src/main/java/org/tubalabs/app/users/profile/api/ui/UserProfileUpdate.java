@@ -4,10 +4,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.tubalabs.app.users.profile.validation.ValidDisplayName;
 
+import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH;
+import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH_MESSAGE;
+
 public record UserProfileUpdate(
         @NotBlank(message = "Display name is required")
         @ValidDisplayName
-        @Size(max = 80, message = "Display name must be 80 characters or fewer")
+        @Size(max = DISPLAY_NAME_MAX_LENGTH, message = DISPLAY_NAME_MAX_LENGTH_MESSAGE)
         String displayName,
         @Size(max = 2000, message = "Picture URL must be 2000 characters or fewer")
         String pictureUrl) {
