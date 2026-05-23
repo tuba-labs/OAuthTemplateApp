@@ -13,7 +13,6 @@ public final class SecurityAllowedPaths {
     public static final String ERROR_PATH = "/error";
     public static final String PROFILE_PATH = "/profile";
     public static final String LOGOUT_PATH = "/logout";
-    public static final String LOCAL_USERS_API_PATH = "/api/local-users";
     public static final String LOCAL_LOGIN_API_PATH = "/api/local-login";
 
     public static final String[] CORE_PUBLIC_MATCHERS = {
@@ -25,7 +24,6 @@ public final class SecurityAllowedPaths {
     public static final String[] PASSWORD_PUBLIC_MATCHERS = {
             LOCAL_LOGIN_PATH,
             REGISTER_PATH,
-            LOCAL_USERS_API_PATH,
             LOCAL_LOGIN_API_PATH
     };
     public static final String[] OAUTH2_PUBLIC_MATCHERS = {
