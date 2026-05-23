@@ -9,7 +9,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.tubalabs.app.users.password.security.LocalSessionAuthentication;
+import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.password.LocalUserService;
+import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 
 import java.util.Objects;
 
@@ -19,6 +21,7 @@ public class LocalLoginController {
 
     private final LocalUserService localUserService;
     private final LocalSessionAuthentication localSessionAuthentication;
+    private final ProfileSetupRequirementService profileSetupRequirementService;
 
     @PostMapping("/login/local")
     public String login(@RequestParam @NonNull String email,
@@ -26,9 +29,12 @@ public class LocalLoginController {
                         @NonNull HttpServletRequest request,
                         @NonNull HttpServletResponse response) {
         try {
-            localUserService.login(email, password, clientIp(request), userAgent(request));
+            final LoginResult result = localUserService.login(email, password, clientIp(request), userAgent(request));
             localSessionAuthentication.authenticate(email, request, response);
-            return "redirect:/";
+            if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
+                return "redirect:/profile";
+            }
+            return "redirect:/remember-login";
         } catch (BadCredentialsException exception) {
             return "redirect:/login/local?error";
         }

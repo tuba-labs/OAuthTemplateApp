@@ -8,9 +8,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.RememberMeServices;
 import org.tubalabs.app.security.SecurityConfig;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.password.LocalUserService;
+import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 
 import java.util.Objects;
 
@@ -20,6 +22,8 @@ import java.util.Objects;
 public class PasswordSecurityCustomizer {
 
     private final LocalUserService localUserService;
+    private final RememberMeServices rememberMeServices;
+    private final ProfileSetupRequirementService profileSetupRequirementService;
 
     @Bean
     public SecurityConfig.HttpSecurityCustomizer passwordHttpSecurityCustomizer(
@@ -35,7 +39,9 @@ public class PasswordSecurityCustomizer {
                         .passwordParameter("password")
                         .successHandler(handler)
                         .failureUrl("/login/local?error")
-                        .permitAll());
+                        .permitAll())
+                .rememberMe(rememberMe -> rememberMe
+                        .rememberMeServices(rememberMeServices));
     }
 
     @Bean
@@ -45,7 +51,11 @@ public class PasswordSecurityCustomizer {
                     authentication.getName(), clientIp(request), userAgent(request));
             log.info("Logged in user with password: {}", result);
 
-            response.sendRedirect("/");
+            if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
+                response.sendRedirect("/profile");
+                return;
+            }
+            response.sendRedirect("/remember-login");
         };
     }
 

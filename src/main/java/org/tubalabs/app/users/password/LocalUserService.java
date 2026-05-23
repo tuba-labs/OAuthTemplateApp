@@ -58,7 +58,7 @@ public class LocalUserService {
         }
 
         final String normalizedEmail = emailNormalizer.normalize(registration.email());
-        final String displayName = registration.displayName().trim();
+        final String displayName = optionalTrimmed(registration.displayName());
 
         final UUID userId = UUID.randomUUID();
         final UUID identityId = UUID.randomUUID();
@@ -120,6 +120,7 @@ public class LocalUserService {
                 .userId(identity.userId())
                 .providerId(LOCAL_PROVIDER_ID)
                 .subject(normalizedEmail)
+                .newUser(false)
                 .build();
     }
 
@@ -139,6 +140,13 @@ public class LocalUserService {
         } catch (UserIdentityAlreadyExistsException exception) {
             throw new LocalUserAlreadyExistsException(normalizedEmail, exception);
         }
+    }
+
+    private String optionalTrimmed(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private UserLoginDbo newLogin(

@@ -2,6 +2,7 @@ package org.tubalabs.app.users.profile;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.ui.ExtendedModelMap;
@@ -25,6 +26,7 @@ class UserProfileControllerTest {
 
     private static final String PROFILE_VIEW = "org/tubalabs/app/users/profile/profile";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
+    private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";
     private static final String PROFILE_FORM_ATTRIBUTE = "profileForm";
     private static final String PROFILE_EMAIL_ATTRIBUTE = "profileEmail";
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
@@ -35,8 +37,9 @@ class UserProfileControllerTest {
 
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
     private final UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+    private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
     private final UserProfileController controller =
-            new UserProfileController(currentUserIdResolver, userProfileService);
+            new UserProfileController(currentUserIdResolver, userProfileService, profileSetupSession);
     private final Authentication authentication =
             UsernamePasswordAuthenticationToken.authenticated("person", null, List.of());
 
@@ -61,12 +64,30 @@ class UserProfileControllerTest {
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
 
-        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes);
+        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
 
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(PROFILE_SAVED_ATTRIBUTE)).isEqualTo(Boolean.TRUE);
         verify(userProfileService).updateProfile(USER_ID, profileForm);
+    }
+
+    @Test
+    void redirectsToRememberLoginAfterRequiredProfileSetup() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        final UserProfileUpdate profileForm = new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
+        final Model model = new ExtendedModelMap();
+        final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        when(profileSetupSession.isProfileSetupRequired(request)).thenReturn(true);
+
+        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
+
+        assertThat(view).isEqualTo(REMEMBER_LOGIN_REDIRECT);
+        verify(userProfileService).updateProfile(USER_ID, profileForm);
+        verify(profileSetupSession).completeProfileSetup(request);
     }
 
     @Test
@@ -78,12 +99,14 @@ class UserProfileControllerTest {
         bindingResult.rejectValue("displayName", "NotBlank", "Display name is required");
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
 
-        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes);
+        final String view = controller.updateProfile(authentication, profileForm, bindingResult, model, redirectAttributes, request);
 
         assertThat(view).isEqualTo(PROFILE_VIEW);
         assertThat(model.getAttribute(PROFILE_EMAIL_ATTRIBUTE)).isEqualTo(EMAIL);
         verify(userProfileService, never()).updateProfile(Mockito.any(), Mockito.any());
+        verify(profileSetupSession, never()).completeProfileSetup(Mockito.any());
     }
 
     private UserProfileDbo profile() {

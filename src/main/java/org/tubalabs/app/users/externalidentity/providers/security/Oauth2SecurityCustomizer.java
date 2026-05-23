@@ -17,6 +17,8 @@ import org.tubalabs.app.users.UserService;
 import org.tubalabs.app.users.externalidentity.ExternalIdentity;
 import org.tubalabs.app.users.externalidentity.providers.ExternalIdentityProvider;
 import org.tubalabs.app.users.externalidentity.providers.ExternalIdentityProviders;
+import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
+import org.tubalabs.app.users.profile.ProfileSetupSession;
 
 import java.util.Objects;
 
@@ -27,6 +29,8 @@ public class Oauth2SecurityCustomizer {
 
     private final UserService userService;
     private final ExternalIdentityProviders externalIdentityProviders;
+    private final ProfileSetupSession profileSetupSession;
+    private final ProfileSetupRequirementService profileSetupRequirementService;
 
     @Bean
     public SecurityConfig.HttpSecurityCustomizer oauth2HttpSecurityCustomizer(
@@ -58,7 +62,16 @@ public class Oauth2SecurityCustomizer {
 
             log.info("Logged in user: {}", result);
 
-            response.sendRedirect("/");
+            if (result.newUser()) {
+                profileSetupSession.requireProfileSetup(request);
+                response.sendRedirect("/profile");
+                return;
+            }
+            if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
+                response.sendRedirect("/profile");
+                return;
+            }
+            response.sendRedirect("/remember-login");
         };
     }
 }

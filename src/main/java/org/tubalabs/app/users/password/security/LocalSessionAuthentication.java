@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,9 +21,9 @@ public class LocalSessionAuthentication {
 
     private final LocalUserDetailsService localUserDetailsService;
 
-    public void authenticate(@NonNull String email,
-                             @NonNull HttpServletRequest servletRequest,
-                             @NonNull HttpServletResponse servletResponse) {
+    public Authentication authenticate(@NonNull String email,
+                                       @NonNull HttpServletRequest servletRequest,
+                                       @NonNull HttpServletResponse servletResponse) {
         final UserDetails userDetails = localUserDetailsService.loadUserByUsername(email);
         final UsernamePasswordAuthenticationToken authentication = UsernamePasswordAuthenticationToken.authenticated(
                 userDetails, null, userDetails.getAuthorities());
@@ -30,5 +31,6 @@ public class LocalSessionAuthentication {
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
         securityContextRepository.saveContext(securityContext, servletRequest, servletResponse);
+        return authentication;
     }
 }

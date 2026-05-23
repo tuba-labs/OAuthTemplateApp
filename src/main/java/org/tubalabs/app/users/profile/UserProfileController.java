@@ -1,5 +1,6 @@
 package org.tubalabs.app.users.profile;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +26,11 @@ public class UserProfileController {
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
     private static final String PROFILE_VIEW = "org/tubalabs/app/users/profile/profile";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
+    private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";
 
     private final CurrentUserIdResolver currentUserIdResolver;
     private final UserProfileService userProfileService;
+    private final ProfileSetupSession profileSetupSession;
 
     @GetMapping("/profile")
     public String profile(@NonNull Authentication authentication, @NonNull Model model) {
@@ -45,7 +48,8 @@ public class UserProfileController {
                                 @Valid @ModelAttribute(PROFILE_FORM_ATTRIBUTE) UserProfileUpdate profileForm,
                                 BindingResult bindingResult,
                                 @NonNull Model model,
-                                @NonNull RedirectAttributes redirectAttributes) {
+                                @NonNull RedirectAttributes redirectAttributes,
+                                @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
 
         if (bindingResult.hasErrors()) {
@@ -55,6 +59,10 @@ public class UserProfileController {
         }
 
         userProfileService.updateProfile(userId, profileForm);
+        if (profileSetupSession.isProfileSetupRequired(request)) {
+            profileSetupSession.completeProfileSetup(request);
+            return REMEMBER_LOGIN_REDIRECT;
+        }
         redirectAttributes.addFlashAttribute(PROFILE_SAVED_ATTRIBUTE, true);
         return PROFILE_REDIRECT;
     }

@@ -74,6 +74,7 @@ public class UserService {
                 .userId(userId)
                 .providerId(externalIdentity.providerId())
                 .subject(externalIdentity.subject())
+                .newUser(true)
                 .build();
     }
 
@@ -107,6 +108,7 @@ public class UserService {
                 .userId(localIdentity.userId())
                 .providerId(localIdentity.providerId())
                 .subject(localIdentity.subject())
+                .newUser(false)
                 .build();
     }
 

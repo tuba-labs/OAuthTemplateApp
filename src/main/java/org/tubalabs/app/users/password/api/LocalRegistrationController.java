@@ -19,6 +19,7 @@ import org.tubalabs.app.users.password.LocalUserService;
 import org.tubalabs.app.users.password.LocalUserRegistration;
 import org.tubalabs.app.users.password.security.LocalSessionAuthentication;
 import org.tubalabs.app.users.password.validation.SafePassword;
+import org.tubalabs.app.users.profile.ProfileSetupSession;
 
 import java.util.Objects;
 
@@ -30,10 +31,11 @@ public class LocalRegistrationController {
     private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
     private static final String REGISTER_VIEW = "org/tubalabs/app/users/password/api/register";
     private static final String REGISTER_REDIRECT = "redirect:/register";
-    private static final String HOME_REDIRECT = "redirect:/";
+    private static final String PROFILE_REDIRECT = "redirect:/profile";
 
     private final LocalUserService localUserService;
     private final LocalSessionAuthentication localSessionAuthentication;
+    private final ProfileSetupSession profileSetupSession;
 
     @GetMapping("/register")
     public String registerForm() {
@@ -57,8 +59,7 @@ public class LocalRegistrationController {
         }
 
         try {
-            final LocalUserRegistration registration = new LocalUserRegistration(
-                    form.email(), form.password(), form.displayName());
+            final LocalUserRegistration registration = new LocalUserRegistration(form.email(), form.password(), null);
             final CreateResult createResult = localUserService.register(registration);
             if (createResult.vetoed()) {
                 addRegistrationError(redirectAttributes, createResult.firstVeto().englishReason());
@@ -66,7 +67,8 @@ public class LocalRegistrationController {
             }
             localUserService.login(form.email(), clientIp(request), userAgent(request));
             localSessionAuthentication.authenticate(form.email(), request, response);
-            return HOME_REDIRECT;
+            profileSetupSession.requireProfileSetup(request);
+            return PROFILE_REDIRECT;
         } catch (IllegalArgumentException exception) {
             addRegistrationError(redirectAttributes, exception.getMessage());
             return REGISTER_REDIRECT;
@@ -94,9 +96,6 @@ public class LocalRegistrationController {
             @SafePassword
             String password,
             @NotBlank(message = "Password confirmation is required")
-            String passwordConfirmation,
-            @NotBlank(message = "Display name is required")
-            @Size(max = 80, message = "Display name must be 80 characters or fewer")
-            String displayName) {
+            String passwordConfirmation) {
     }
 }

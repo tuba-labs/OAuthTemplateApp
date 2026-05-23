@@ -9,5 +9,6 @@ import java.util.UUID;
 public record LoginResult(
         @NonNull UUID userId,
         @NonNull String providerId,
-        @NonNull String subject) {
+        @NonNull String subject,
+        boolean newUser) {
 }

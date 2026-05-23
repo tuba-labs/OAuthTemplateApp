@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -39,6 +40,7 @@ class CurrentUserIdResolverTest {
     private static final String PROVIDER_ID = "test-provider";
     private static final String SUBJECT = "provider-subject";
     private static final String DISPLAY_NAME = "Person";
+    private static final String REMEMBER_ME_KEY = "remember-me-key";
 
     private final LocalEmailNormalizer emailNormalizer = new LocalEmailNormalizer();
     private final UserPasswordCredentialRepository userPasswordCredentialRepository =
@@ -59,6 +61,36 @@ class CurrentUserIdResolverTest {
                 .build();
         final Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
                 userDetails, null, userDetails.getAuthorities());
+
+        final UUID userId = resolver.requireUserId(authentication);
+
+        assertThat(userId).isEqualTo(USER_ID);
+    }
+
+    @Test
+    void resolvesLocalUserIdFromRememberMeAuthentication() {
+        when(userPasswordCredentialRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(new UserPasswordCredentialDbo(USER_ID, EMAIL, "hash")));
+        final UserDetails userDetails = User.withUsername(MIXED_CASE_EMAIL)
+                .password("hash")
+                .authorities("ROLE_USER")
+                .build();
+        final Authentication authentication = new RememberMeAuthenticationToken(
+                REMEMBER_ME_KEY, userDetails, userDetails.getAuthorities());
+
+        final UUID userId = resolver.requireUserId(authentication);
+
+        assertThat(userId).isEqualTo(USER_ID);
+    }
+
+    @Test
+    void resolvesRememberedUserIdFromInternalUserId() {
+        final UserDetails userDetails = User.withUsername(USER_ID.toString())
+                .password("remembered")
+                .authorities("ROLE_USER")
+                .build();
+        final Authentication authentication = new RememberMeAuthenticationToken(
+                REMEMBER_ME_KEY, userDetails, userDetails.getAuthorities());
 
         final UUID userId = resolver.requireUserId(authentication);
 

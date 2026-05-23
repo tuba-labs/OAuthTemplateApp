@@ -14,6 +14,10 @@ spring:
 
 app:
   security:
+    remember-login:
+      prompt-skip-duration: ${REMEMBER_LOGIN_PROMPT_SKIP_DURATION:30d}
+    remember-me:
+      token-validity: ${REMEMBER_ME_TOKEN_VALIDITY:183d}
     password:
       pwned-passwords:
         enabled: true

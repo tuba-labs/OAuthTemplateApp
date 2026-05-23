@@ -4,6 +4,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -36,11 +37,22 @@ public class CurrentUserIdResolver {
         if (authentication instanceof OAuth2AuthenticationToken authenticationToken) {
             return oauth2UserId(authenticationToken);
         }
+        if (authentication instanceof RememberMeAuthenticationToken) {
+            return rememberedUserId(authentication);
+        }
         if (authentication instanceof UsernamePasswordAuthenticationToken) {
             return localUserId(authentication);
         }
 
         throw new AccessDeniedException("Unsupported authentication type: " + authentication.getClass().getName());
+    }
+
+    private UUID rememberedUserId(Authentication authentication) {
+        try {
+            return UUID.fromString(authentication.getName());
+        } catch (IllegalArgumentException exception) {
+            return localUserId(authentication);
+        }
     }
 
     private UUID localUserId(Authentication authentication) {

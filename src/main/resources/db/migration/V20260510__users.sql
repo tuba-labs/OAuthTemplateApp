@@ -80,3 +80,14 @@ CREATE TABLE user_password_credential
     CONSTRAINT user_password_credential_email_uq
         UNIQUE (email)
 );
+
+CREATE TABLE persistent_logins
+(
+    username  VARCHAR(320) NOT NULL,
+    series    VARCHAR(64) PRIMARY KEY,
+    token     VARCHAR(64)  NOT NULL,
+    last_used TIMESTAMP    NOT NULL
+);
+
+CREATE INDEX persistent_logins_username_idx
+    ON persistent_logins (username);

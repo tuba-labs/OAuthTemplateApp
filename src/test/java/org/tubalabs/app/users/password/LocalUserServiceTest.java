@@ -93,6 +93,16 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     }
 
     @Test
+    void registersLocalUserWithoutInitialDisplayName() {
+        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD, null));
+
+        final UserProfileDbo profile = userProfileRepository.findByUserId(createResult.id()).orElseThrow();
+
+        assertThat(profile.displayName()).isNull();
+        assertThat(profile.email()).isEqualTo(EMAIL);
+    }
+
+    @Test
     void rejectsLoginWithWrongPassword() {
         localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD, DISPLAY_NAME));
 

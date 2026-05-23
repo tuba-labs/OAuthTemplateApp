@@ -27,7 +27,8 @@
 
         <label class="field">
             <span>Display name</span>
-            <input th:field="*{displayName}" autocomplete="name" required maxlength="80">
+            <input th:field="*{displayName}" autocomplete="name" required minlength="3" maxlength="80" aria-describedby="displayNameRequirements">
+            <p class="field-help" id="displayNameRequirements">Use at least 3 letters or numbers.</p>
             <span class="field-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
         </label>
         <div class="field">

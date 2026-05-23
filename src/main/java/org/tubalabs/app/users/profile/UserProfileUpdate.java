@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 
 public record UserProfileUpdate(
         @NotBlank(message = "Display name is required")
+        @ValidDisplayName
         @Size(max = 80, message = "Display name must be 80 characters or fewer")
         String displayName,
         @Size(max = 2000, message = "Picture URL must be 2000 characters or fewer")

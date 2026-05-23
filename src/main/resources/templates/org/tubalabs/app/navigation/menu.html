@@ -4,7 +4,14 @@
             <span class="app-menu-icon" aria-hidden="true"></span>
         </summary>
         <nav class="app-menu-panel" aria-label="Primary navigation">
-            <a class="app-menu-link" th:href="@{/profile}">Profile</a>
+            <a class="app-menu-link" th:href="@{/profile}" th:text="${currentUserDisplayName}">Profile</a>
+            <div class="app-menu-bottom">
+                <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Use light theme">
+                    <span class="theme-toggle-track" aria-hidden="true">
+                        <span class="theme-toggle-thumb"></span>
+                    </span>
+                </button>
+            </div>
         </nav>
     </details>
 </header>
