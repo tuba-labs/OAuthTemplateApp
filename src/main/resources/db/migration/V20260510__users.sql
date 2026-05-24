@@ -21,16 +21,15 @@ CREATE TABLE user_identity
     picture_url  TEXT,
 
     CONSTRAINT user_identity_provider_subject_uq
-        UNIQUE (provider_id, subject)
+        UNIQUE (provider_id, subject),
+    CONSTRAINT user_identity_user_provider_uq
+        UNIQUE (user_id, provider_id)
 );
 
 
 
 CREATE INDEX user_identity_user_id_idx
     ON user_identity (user_id);
-
-CREATE INDEX user_identity_user_provider_id_idx
-    ON user_identity (user_id, provider_id);
 
 CREATE TABLE user_login
 (

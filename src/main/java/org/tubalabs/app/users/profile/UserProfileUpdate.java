@@ -1,4 +1,4 @@
-package org.tubalabs.app.users.profile.api.ui;
+package org.tubalabs.app.users.profile;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

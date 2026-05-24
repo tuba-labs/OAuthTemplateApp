@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -31,6 +32,31 @@ public class UserIdentityRepository {
         return jdbcClient.sql(sqlRecordIntrospector.select(TABLE_NAME, columns) + "WHERE provider_id = :provider_id AND subject = :subject")
                 .param("provider_id", providerId)
                 .param("subject", subject)
+                .query(USER_IDENTITY_ROW_MAPPER)
+                .optional();
+    }
+
+    public Optional<UserIdentityDbo> findById(@NonNull UUID id) {
+        final List<String> columns = sqlRecordIntrospector.columnsFromShape(TABLE_NAME, UserIdentityDbo.class, Set.of());
+        return jdbcClient.sql(sqlRecordIntrospector.select(TABLE_NAME, columns) + "WHERE id = :id")
+                .param("id", id)
+                .query(USER_IDENTITY_ROW_MAPPER)
+                .optional();
+    }
+
+    public List<UserIdentityDbo> findByUserId(@NonNull UUID userId) {
+        final List<String> columns = sqlRecordIntrospector.columnsFromShape(TABLE_NAME, UserIdentityDbo.class, Set.of());
+        return jdbcClient.sql(sqlRecordIntrospector.select(TABLE_NAME, columns) + "WHERE user_id = :user_id ORDER BY provider_id")
+                .param("user_id", userId)
+                .query(USER_IDENTITY_ROW_MAPPER)
+                .list();
+    }
+
+    public Optional<UserIdentityDbo> findByUserIdAndProviderId(@NonNull UUID userId, @NonNull String providerId) {
+        final List<String> columns = sqlRecordIntrospector.columnsFromShape(TABLE_NAME, UserIdentityDbo.class, Set.of());
+        return jdbcClient.sql(sqlRecordIntrospector.select(TABLE_NAME, columns) + "WHERE user_id = :user_id AND provider_id = :provider_id")
+                .param("user_id", userId)
+                .param("provider_id", providerId)
                 .query(USER_IDENTITY_ROW_MAPPER)
                 .optional();
     }
@@ -55,5 +81,15 @@ public class UserIdentityRepository {
                 .params(parameters)
                 .query(USER_IDENTITY_ROW_MAPPER)
                 .single();
+    }
+
+    public int deleteByUserIdAndProviderId(@NonNull UUID userId, @NonNull String providerId) {
+        return jdbcClient.sql("""
+                        DELETE FROM user_identity
+                        WHERE user_id = :user_id AND provider_id = :provider_id
+                """)
+                .param("user_id", userId)
+                .param("provider_id", providerId)
+                .update();
     }
 }

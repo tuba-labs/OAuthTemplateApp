@@ -4,8 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,15 +15,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.tubalabs.app.users.CurrentUserIdResolver;
-import org.tubalabs.app.users.identity.password.LocalUserService;
-import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
-import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
-import org.tubalabs.app.users.profile.config.ProfileSetupSession;
+import org.tubalabs.app.users.profile.UserProfileUpdate;
 import org.tubalabs.app.users.profile.UserProfileService;
+import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
+import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
+import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageFailure;
+import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
 
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 @Controller
@@ -33,24 +30,22 @@ import java.util.UUID;
 public class UserProfileController {
 
     private static final String PROFILE_FORM_ATTRIBUTE = "profileForm";
-    private static final String PASSWORD_FORM_ATTRIBUTE = "passwordForm";
-    private static final String LOCAL_PROFILE_ATTRIBUTE = "localProfile";
-    private static final String LOCAL_LOGIN_NAME_ATTRIBUTE = "localLoginName";
-    private static final String PASSWORD_CHANGE_AVAILABLE_ATTRIBUTE = "passwordChangeAvailable";
-    private static final String PASSWORD_DIALOG_OPEN_ATTRIBUTE = "passwordDialogOpen";
-    private static final String PROFILE_PICTURE_ATTRIBUTE = "profilePictureUrl";
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
-    private static final String PASSWORD_SAVED_ATTRIBUTE = "passwordSaved";
-    private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
     private static final String PROFILE_VIEW = "org/tubalabs/app/users/profile/profile";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
     private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";
+    private static final String EMPTY_PROFILE_PICTURE_MESSAGE = "Choose a profile picture to upload";
+    private static final String PROFILE_PICTURE_TOO_LARGE_MESSAGE = "Profile picture is too large";
+    private static final String INVALID_PROFILE_PICTURE_MESSAGE = "Profile picture must be a PNG, JPEG, or GIF image";
+    private static final String PROFILE_PICTURE_DIMENSIONS_TOO_LARGE_MESSAGE =
+            "Profile picture dimensions are too large";
+    private static final String PROFILE_PICTURE_UPLOAD_FAILED_MESSAGE = "Could not upload profile picture";
 
     private final CurrentUserIdResolver currentUserIdResolver;
     private final UserProfileService userProfileService;
-    private final LocalUserService localUserService;
     private final ProfileSetupSession profileSetupSession;
     private final ProfilePictureStorageService profilePictureStorageService;
+    private final ProfilePageModel profilePageModel;
 
     @GetMapping("/profile")
     public String profile(@NonNull Authentication authentication,
@@ -58,10 +53,8 @@ public class UserProfileController {
                           @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         final UserProfileDbo profile = userProfileService.getProfile(userId);
-        if (!model.containsAttribute(PROFILE_FORM_ATTRIBUTE)) {
-            model.addAttribute(PROFILE_FORM_ATTRIBUTE, profileForm(profile));
-        }
-        addProfileModelAttributes(model, userId, profile, request);
+        addProfileFormIfMissing(model, profile);
+        profilePageModel.addProfileAttributes(model, userId, profile, request);
         return PROFILE_VIEW;
     }
 
@@ -77,7 +70,7 @@ public class UserProfileController {
         final UserProfileDbo currentProfile = userProfileService.getProfile(userId);
 
         if (bindingResult.hasErrors()) {
-            addProfileModelAttributes(model, userId, currentProfile, request);
+            profilePageModel.addProfileAttributes(model, userId, currentProfile, request);
             return PROFILE_VIEW;
         }
 
@@ -85,8 +78,8 @@ public class UserProfileController {
         try {
             update = updateWithPicture(userId, profileForm, currentProfile, pictureFile);
         } catch (ProfilePictureStorageException exception) {
-            bindingResult.rejectValue("pictureUrl", "profilePictureUpload", exception.userMessage());
-            addProfileModelAttributes(model, userId, currentProfile, request);
+            bindingResult.rejectValue("pictureUrl", "profilePictureUpload", profilePictureFailureMessage(exception));
+            profilePageModel.addProfileAttributes(model, userId, currentProfile, request);
             return PROFILE_VIEW;
         }
 
@@ -97,52 +90,6 @@ public class UserProfileController {
         }
         redirectAttributes.addFlashAttribute(PROFILE_SAVED_ATTRIBUTE, true);
         return PROFILE_REDIRECT;
-    }
-
-    @PostMapping("/profile/password")
-    public String changePassword(@NonNull Authentication authentication,
-                                 @Valid @ModelAttribute(PASSWORD_FORM_ATTRIBUTE) @NonNull UserPasswordChange passwordForm,
-                                 @NonNull BindingResult bindingResult,
-                                 @NonNull Model model,
-                                 @NonNull RedirectAttributes redirectAttributes,
-                                 @NonNull HttpServletRequest request) {
-        final UUID userId = currentUserIdResolver.requireUserId(authentication);
-        final UserProfileDbo currentProfile = userProfileService.getProfile(userId);
-        if (localUserService.loginName(userId).isEmpty() || profileSetupSession.isProfileSetupRequired(request)) {
-            throw new AccessDeniedException("An established local account is required to change password");
-        }
-
-        if (!Objects.equals(passwordForm.newPassword(), passwordForm.newPasswordConfirmation())) {
-            bindingResult.rejectValue("newPasswordConfirmation", "passwordMismatch", PASSWORD_MISMATCH_MESSAGE);
-        }
-        if (bindingResult.hasErrors()) {
-            return profileViewWithPasswordErrors(model, userId, currentProfile, passwordForm, request);
-        }
-
-        try {
-            localUserService.changePassword(userId, passwordForm.currentPassword(), passwordForm.newPassword());
-        } catch (BadCredentialsException exception) {
-            bindingResult.rejectValue("currentPassword", "badCredentials", exception.getMessage());
-            return profileViewWithPasswordErrors(model, userId, currentProfile, passwordForm, request);
-        } catch (IllegalArgumentException exception) {
-            bindingResult.rejectValue("newPassword", "passwordRejected", exception.getMessage());
-            return profileViewWithPasswordErrors(model, userId, currentProfile, passwordForm, request);
-        }
-
-        redirectAttributes.addFlashAttribute(PASSWORD_SAVED_ATTRIBUTE, true);
-        return PROFILE_REDIRECT;
-    }
-
-    private String profileViewWithPasswordErrors(@NonNull Model model,
-                                                 @NonNull UUID userId,
-                                                 @NonNull UserProfileDbo currentProfile,
-                                                 @NonNull UserPasswordChange passwordForm,
-                                                 @NonNull HttpServletRequest request) {
-        model.addAttribute(PASSWORD_FORM_ATTRIBUTE, passwordForm);
-        model.addAttribute(PASSWORD_DIALOG_OPEN_ATTRIBUTE, true);
-        addProfileModelAttributes(model, userId, currentProfile, request);
-        addProfileFormIfMissing(model, currentProfile);
-        return PROFILE_VIEW;
     }
 
     private void addProfileFormIfMissing(@NonNull Model model, @NonNull UserProfileDbo profile) {
@@ -166,19 +113,14 @@ public class UserProfileController {
         return new UserProfileUpdate(profileForm.displayName(), uploadedPictureUrl);
     }
 
-    private void addProfileModelAttributes(@NonNull Model model,
-                                           @NonNull UUID userId,
-                                           @NonNull UserProfileDbo profile,
-                                           @NonNull HttpServletRequest request) {
-        final Optional<String> loginName = localUserService.loginName(userId);
-        final boolean passwordChangeAvailable =
-                loginName.isPresent() && !profileSetupSession.isProfileSetupRequired(request);
-        model.addAttribute(LOCAL_PROFILE_ATTRIBUTE, loginName.isPresent());
-        model.addAttribute(PASSWORD_CHANGE_AVAILABLE_ATTRIBUTE, passwordChangeAvailable);
-        loginName.ifPresent(value -> model.addAttribute(LOCAL_LOGIN_NAME_ATTRIBUTE, value));
-        if (passwordChangeAvailable && !model.containsAttribute(PASSWORD_FORM_ATTRIBUTE)) {
-            model.addAttribute(PASSWORD_FORM_ATTRIBUTE, new UserPasswordChange(null, null, null));
-        }
-        model.addAttribute(PROFILE_PICTURE_ATTRIBUTE, profile.pictureUrl());
+    private String profilePictureFailureMessage(@NonNull ProfilePictureStorageException exception) {
+        final ProfilePictureStorageFailure reason = exception.reason();
+        return switch (reason) {
+            case EMPTY_FILE -> EMPTY_PROFILE_PICTURE_MESSAGE;
+            case FILE_TOO_LARGE -> PROFILE_PICTURE_TOO_LARGE_MESSAGE;
+            case INVALID_IMAGE -> INVALID_PROFILE_PICTURE_MESSAGE;
+            case DIMENSIONS_TOO_LARGE -> PROFILE_PICTURE_DIMENSIONS_TOO_LARGE_MESSAGE;
+            case INVALID_PATH, READ_FAILED, STORE_FAILED -> PROFILE_PICTURE_UPLOAD_FAILED_MESSAGE;
+        };
     }
 }

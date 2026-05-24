@@ -1,0 +1,97 @@
+package org.tubalabs.app.users.identity.logins;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.security.authentication.RememberMeAuthenticationToken;
+import org.springframework.security.authentication.event.InteractiveAuthenticationSuccessEvent;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
+import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
+import org.tubalabs.app.users.identity.db.UserIdentityDbo;
+import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
+import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
+
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.util.Optional;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class RememberedLoginRecorder {
+
+    private final Clock clock;
+    private final CurrentLoginIdentityResolver currentLoginIdentityResolver;
+    private final UserLoginRepository userLoginRepository;
+
+    @EventListener
+    public void recordRememberedLogin(@NonNull InteractiveAuthenticationSuccessEvent event) {
+        if (!isRememberMeAutoLogin(event)) {
+            return;
+        }
+
+        final Authentication authentication = event.getAuthentication();
+        final Optional<UserIdentityDbo> identity = currentLoginIdentityResolver.identity(authentication);
+        if (identity.isEmpty()) {
+            log.warn("Could not resolve remembered login identity for principal: {}", authentication.getName());
+            return;
+        }
+
+        userLoginRepository.insert(newLogin(identity.orElseThrow(), authentication));
+    }
+
+    private boolean isRememberMeAutoLogin(InteractiveAuthenticationSuccessEvent event) {
+        return RememberMeAuthenticationFilter.class.equals(event.getGeneratedBy())
+                && event.getAuthentication() instanceof RememberMeAuthenticationToken;
+    }
+
+    private UserLoginDbo newLogin(UserIdentityDbo identity, Authentication authentication) {
+        final Optional<HttpServletRequest> request = currentRequest();
+        return UserLoginDbo.builder()
+                .id(UUID.randomUUID())
+                .userId(identity.userId())
+                .loginTime(Timestamp.from(clock.instant()))
+                .providerId(identity.providerId())
+                .subject(identity.subject())
+                .clientIp(clientIp(request, authentication))
+                .userAgent(userAgent(request))
+                .build();
+    }
+
+    private Optional<HttpServletRequest> currentRequest() {
+        final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes servletRequestAttributes) {
+            return Optional.of(servletRequestAttributes.getRequest());
+        }
+        return Optional.empty();
+    }
+
+    private String clientIp(Optional<HttpServletRequest> request, Authentication authentication) {
+        return request
+                .map(HttpServletRequest::getRemoteAddr)
+                .or(() -> remoteAddress(authentication))
+                .orElse("");
+    }
+
+    private Optional<String> remoteAddress(Authentication authentication) {
+        if (authentication.getDetails() instanceof WebAuthenticationDetails details) {
+            return Optional.ofNullable(details.getRemoteAddress());
+        }
+        return Optional.empty();
+    }
+
+    private String userAgent(Optional<HttpServletRequest> request) {
+        return request
+                .map(value -> value.getHeader("User-Agent"))
+                .orElse("");
+    }
+}

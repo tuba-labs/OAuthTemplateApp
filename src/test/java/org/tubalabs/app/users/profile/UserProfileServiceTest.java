@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Import;
 import org.tubalabs.app.etc.db.SqlColumnNameResolver;
 import org.tubalabs.app.etc.db.SqlRecordIntrospector;
 import org.tubalabs.app.testtools.AbstractJdbcTestBaseTestClass;
-import org.tubalabs.app.users.profile.api.ui.UserProfileUpdate;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.db.UserProfileRepository;
 import org.tubalabs.app.users.user.UserDbo;

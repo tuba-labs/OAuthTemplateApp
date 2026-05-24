@@ -17,6 +17,7 @@ import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
+import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
 import org.tubalabs.app.users.identity.password.validation.vetoers.CreationVetoResult;
@@ -72,12 +73,7 @@ public class LocalUserService {
         userProfileService.createInitialProfile(
                 userId,
                 emailToDisplayName(normalizedEmail));
-        userPasswordCredentialRepository.insert(
-                UserPasswordCredentialDbo.builder()
-                        .userId(userId)
-                        .email(normalizedEmail)
-                        .passwordHash(passwordEncoder.encode(registration.password()))
-                        .build());
+        insertPasswordCredential(userId, normalizedEmail, registration.password());
 
         return CreateResult.created(userId);
     }
@@ -90,6 +86,27 @@ public class LocalUserService {
     public Optional<String> loginName(@NonNull UUID userId) {
         return userPasswordCredentialRepository.findByUserId(userId)
                 .map(UserPasswordCredentialDbo::email);
+    }
+
+    @Transactional
+    public void linkLogin(@NonNull UUID userId, @Valid @NonNull LocalUserRegistration registration) {
+        if (userPasswordCredentialRepository.findByUserId(userId).isPresent()
+                || userIdentityRepository.findByUserIdAndProviderId(userId, LOCAL_PROVIDER_ID).isPresent()) {
+            throw new IllegalArgumentException("This account already has email and password login linked");
+        }
+
+        final List<CreationVetoResult> vetoes = userCreateVetoerService.getVetoes(registration);
+        if (!vetoes.isEmpty()) {
+            throw new IllegalArgumentException(vetoes.get(0).englishReason());
+        }
+
+        final String normalizedEmail = emailNormalizer.normalize(registration.email());
+        if (userPasswordCredentialRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new LocalUserAlreadyExistsException(normalizedEmail);
+        }
+
+        insertLocalIdentity(UUID.randomUUID(), userId, normalizedEmail);
+        insertPasswordCredential(userId, normalizedEmail, registration.password());
     }
 
     @Transactional
@@ -147,6 +164,7 @@ public class LocalUserService {
                 userAgent));
 
         return LoginResult.builder()
+                .identityId(identity.id())
                 .userId(identity.userId())
                 .providerId(LOCAL_PROVIDER_ID)
                 .subject(normalizedEmail)
@@ -166,6 +184,21 @@ public class LocalUserService {
                     .email(normalizedEmail)
                     .build());
         } catch (UserIdentityAlreadyExistsException exception) {
+            throw new LocalUserAlreadyExistsException(normalizedEmail, exception);
+        }
+    }
+
+    private void insertPasswordCredential(@NonNull UUID userId,
+                                          @NonNull String normalizedEmail,
+                                          @NonNull String password) {
+        try {
+            userPasswordCredentialRepository.insert(
+                    UserPasswordCredentialDbo.builder()
+                            .userId(userId)
+                            .email(normalizedEmail)
+                            .passwordHash(passwordEncoder.encode(password))
+                            .build());
+        } catch (UserPasswordCredentialAlreadyExistsException exception) {
             throw new LocalUserAlreadyExistsException(normalizedEmail, exception);
         }
     }

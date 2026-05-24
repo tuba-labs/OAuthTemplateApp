@@ -6,7 +6,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.tubalabs.app.users.user.UserRepository;
+import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 
 import java.util.UUID;
 
@@ -14,24 +14,24 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RememberedUserDetailsService {
 
-    private final UserRepository userRepository;
+    private final UserIdentityRepository userIdentityRepository;
 
     public UserDetails loadUserByUsername(@NonNull String username) {
-        final UUID userId = parseUserId(username);
-        userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("Remembered user not found: " + userId));
+        final UUID identityId = parseIdentityId(username);
+        userIdentityRepository.findById(identityId)
+                .orElseThrow(() -> new UsernameNotFoundException("Remembered identity not found: " + identityId));
 
-        return User.withUsername(userId.toString())
+        return User.withUsername(username)
                 .password("{noop}remembered")
                 .authorities("ROLE_USER")
                 .build();
     }
 
-    private UUID parseUserId(String username) {
+    private UUID parseIdentityId(String username) {
         try {
-            return UUID.fromString(username);
+            return RememberedLoginName.identityId(username);
         } catch (IllegalArgumentException exception) {
-            throw new UsernameNotFoundException("Invalid remembered user id: " + username, exception);
+            throw new UsernameNotFoundException("Invalid remembered identity id: " + username, exception);
         }
     }
 }

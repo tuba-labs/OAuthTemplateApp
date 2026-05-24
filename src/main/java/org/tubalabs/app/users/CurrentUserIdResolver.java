@@ -4,20 +4,10 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.RememberMeAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
-import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProvider;
-import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProviders;
+import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
-import org.tubalabs.app.users.identity.db.UserIdentityRepository;
-import org.tubalabs.app.users.identity.password.LocalEmailNormalizer;
-import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
-import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
 
 import java.util.UUID;
 
@@ -25,50 +15,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CurrentUserIdResolver {
 
-    private final LocalEmailNormalizer emailNormalizer;
-    private final UserPasswordCredentialRepository userPasswordCredentialRepository;
-    private final ExternalIdentityProviders externalIdentityProviders;
-    private final UserIdentityRepository userIdentityRepository;
+    private final CurrentLoginIdentityResolver currentLoginIdentityResolver;
 
     public UUID requireUserId(@NonNull Authentication authentication) {
         if (!authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             throw new AccessDeniedException("Authenticated user is required");
         }
-        if (authentication instanceof OAuth2AuthenticationToken authenticationToken) {
-            return oauth2UserId(authenticationToken);
-        }
-        if (authentication instanceof RememberMeAuthenticationToken) {
-            return rememberedUserId(authentication);
-        }
-        if (authentication instanceof UsernamePasswordAuthenticationToken) {
-            return localUserId(authentication);
-        }
-
-        throw new AccessDeniedException("Unsupported authentication type: " + authentication.getClass().getName());
-    }
-
-    private UUID rememberedUserId(Authentication authentication) {
-        try {
-            return UUID.fromString(authentication.getName());
-        } catch (IllegalArgumentException exception) {
-            return localUserId(authentication);
-        }
-    }
-
-    private UUID localUserId(Authentication authentication) {
-        final String normalizedEmail = emailNormalizer.normalize(authentication.getName());
-        return userPasswordCredentialRepository.findByEmail(normalizedEmail)
-                .map(UserPasswordCredentialDbo::userId)
-                .orElseThrow(() -> new AccessDeniedException("Local user not found: " + normalizedEmail));
-    }
-
-    private UUID oauth2UserId(OAuth2AuthenticationToken authentication) {
-        final String providerId = authentication.getAuthorizedClientRegistrationId();
-        final OAuth2User oauth2User = authentication.getPrincipal();
-        final ExternalIdentityProvider provider = externalIdentityProviders.getProvider(providerId);
-        final ExternalIdentity externalIdentity = provider.getIdentity(oauth2User);
-        return userIdentityRepository.findByProviderAndSubject(providerId, externalIdentity.subject())
+        return currentLoginIdentityResolver.identity(authentication)
                 .map(UserIdentityDbo::userId)
-                .orElseThrow(() -> new AccessDeniedException("OAuth user not found: " + providerId));
+                .orElseThrow(() -> new AccessDeniedException(
+                        "Current login identity not found for authentication type: " + authentication.getClass().getName()));
     }
 }

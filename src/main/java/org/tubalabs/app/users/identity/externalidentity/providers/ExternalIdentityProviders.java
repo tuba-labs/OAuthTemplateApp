@@ -11,28 +11,22 @@ import java.util.stream.Collectors;
 @Component
 public class ExternalIdentityProviders {
 
-    private final Map<String, ExternalIdentityProvider>
-            providersById;
+    private final Map<String, ExternalIdentityProvider> providersById;
 
     public ExternalIdentityProviders(@NonNull List<ExternalIdentityProvider> providers) {
-
-        this.providersById = providers.stream().collect(
-                Collectors.toUnmodifiableMap(
-                        ExternalIdentityProvider::providerId, Function.identity()));
+        this.providersById = providers.stream()
+                .collect(
+                        Collectors.toUnmodifiableMap(
+                                ExternalIdentityProvider::providerId,
+                                Function.identity()));
     }
 
     @NonNull
     public ExternalIdentityProvider getProvider(@NonNull String providerId) {
-
-        final ExternalIdentityProvider provider =
-                providersById.get(providerId);
-
+        final ExternalIdentityProvider provider = providersById.get(providerId);
         if (provider == null) {
-            throw new IllegalStateException(
-                    "Unsupported provider: "
-                            + providerId);
+            throw new IllegalStateException("Unsupported provider: " + providerId);
         }
-
         return provider;
     }
 }

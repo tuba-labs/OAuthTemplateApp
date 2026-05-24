@@ -27,7 +27,9 @@ class UserIdentityRepositoryTest extends AbstractJdbcTestBaseTestClass {
     private static final UUID IDENTITY_ID = UUID.fromString("44444444-4444-4444-4444-444444444444");
     private static final UUID OTHER_IDENTITY_ID = UUID.fromString("55555555-5555-5555-5555-555555555555");
     private static final String PROVIDER_ID = "local";
+    private static final String OTHER_PROVIDER_ID = "google";
     private static final String SUBJECT = "person@example.com";
+    private static final String OTHER_SUBJECT = "google-subject";
     private static final String DISPLAY_NAME = "Person";
     private static final String UPDATED_DISPLAY_NAME = "Updated Person";
     private static final String EMAIL = "person@example.com";
@@ -50,8 +52,40 @@ class UserIdentityRepositoryTest extends AbstractJdbcTestBaseTestClass {
                 .build();
 
         assertThat(userIdentityRepository.findByProviderAndSubject(PROVIDER_ID, SUBJECT)).contains(identity);
+        assertThat(userIdentityRepository.findById(IDENTITY_ID)).contains(identity);
         assertThat(userIdentityRepository.update(updatedIdentity)).isEqualTo(updatedIdentity);
         assertThat(userIdentityRepository.findByProviderAndSubject(PROVIDER_ID, SUBJECT)).contains(updatedIdentity);
+    }
+
+    @Test
+    void findsIdentitiesByUserAndProvider() {
+        insertUser(USER_ID);
+        final UserIdentityDbo localIdentity = newIdentity(IDENTITY_ID, USER_ID, PROVIDER_ID, SUBJECT, DISPLAY_NAME);
+        final UserIdentityDbo googleIdentity =
+                newIdentity(OTHER_IDENTITY_ID, USER_ID, OTHER_PROVIDER_ID, OTHER_SUBJECT, UPDATED_DISPLAY_NAME);
+
+        userIdentityRepository.insert(localIdentity);
+        userIdentityRepository.insert(googleIdentity);
+
+        assertThat(userIdentityRepository.findByUserId(USER_ID))
+                .containsExactly(googleIdentity, localIdentity);
+        assertThat(userIdentityRepository.findByUserIdAndProviderId(USER_ID, OTHER_PROVIDER_ID))
+                .contains(googleIdentity);
+    }
+
+    @Test
+    void deletesIdentityByUserAndProvider() {
+        insertUser(USER_ID);
+        final UserIdentityDbo localIdentity = newIdentity(IDENTITY_ID, USER_ID, PROVIDER_ID, SUBJECT, DISPLAY_NAME);
+        final UserIdentityDbo googleIdentity =
+                newIdentity(OTHER_IDENTITY_ID, USER_ID, OTHER_PROVIDER_ID, OTHER_SUBJECT, UPDATED_DISPLAY_NAME);
+        userIdentityRepository.insert(localIdentity);
+        userIdentityRepository.insert(googleIdentity);
+
+        final int deletedRows = userIdentityRepository.deleteByUserIdAndProviderId(USER_ID, OTHER_PROVIDER_ID);
+
+        assertThat(deletedRows).isEqualTo(1);
+        assertThat(userIdentityRepository.findByUserId(USER_ID)).containsExactly(localIdentity);
     }
 
     @Test
@@ -71,11 +105,19 @@ class UserIdentityRepositoryTest extends AbstractJdbcTestBaseTestClass {
     }
 
     private UserIdentityDbo newIdentity(UUID identityId, UUID userId, String displayName) {
+        return newIdentity(identityId, userId, PROVIDER_ID, SUBJECT, displayName);
+    }
+
+    private UserIdentityDbo newIdentity(UUID identityId,
+                                        UUID userId,
+                                        String providerId,
+                                        String subject,
+                                        String displayName) {
         return UserIdentityDbo.builder()
                 .id(identityId)
                 .userId(userId)
-                .providerId(PROVIDER_ID)
-                .subject(SUBJECT)
+                .providerId(providerId)
+                .subject(subject)
                 .displayName(displayName)
                 .email(EMAIL)
                 .pictureUrl(PICTURE_URL)

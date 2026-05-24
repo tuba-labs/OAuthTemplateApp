@@ -14,8 +14,10 @@ import org.tubalabs.app.etc.db.SqlRecordIntrospector;
 import org.tubalabs.app.testtools.AbstractJdbcTestBaseTestClass;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.identity.password.*;
+import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
 import org.tubalabs.app.users.identity.password.security.PasswordConfig;
@@ -23,6 +25,7 @@ import org.tubalabs.app.users.identity.password.validation.vetoers.UserCreateVet
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.db.UserProfileRepository;
+import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
 
 import java.util.UUID;
@@ -57,9 +60,16 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     private static final String DISPLAY_NAME = "Person";
     private static final String CLIENT_IP = "127.0.0.1";
     private static final String USER_AGENT = "JUnit";
+    private static final UUID EXISTING_USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
     @Autowired
     private LocalUserService localUserService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserIdentityRepository userIdentityRepository;
 
     @Autowired
     private UserPasswordCredentialRepository userPasswordCredentialRepository;
@@ -80,10 +90,14 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
 
         final LoginResult loginResult = localUserService.login(MIXED_CASE_EMAIL, PASSWORD, CLIENT_IP, USER_AGENT);
         final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByEmail(EMAIL).orElseThrow();
+        final UserIdentityDbo identity = userIdentityRepository
+                .findByProviderAndSubject(LocalUserService.LOCAL_PROVIDER_ID, EMAIL)
+                .orElseThrow();
         final UserProfileDbo profile = userProfileRepository.findByUserId(createResult.id()).orElseThrow();
 
         assertThat(createResult.vetoed()).isFalse();
         assertThat(createResult.id()).isNotNull();
+        assertThat(loginResult.identityId()).isEqualTo(identity.id());
         assertThat(loginResult.userId()).isEqualTo(createResult.id());
         assertThat(loginResult.providerId()).isEqualTo(LocalUserService.LOCAL_PROVIDER_ID);
         assertThat(loginResult.subject()).isEqualTo(EMAIL);
@@ -116,6 +130,46 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     }
 
     @Test
+    void linksLocalLoginToExistingUser() {
+        userRepository.insert(new UserDbo(EXISTING_USER_ID));
+
+        localUserService.linkLogin(EXISTING_USER_ID, new LocalUserRegistration(MIXED_CASE_EMAIL, PASSWORD));
+
+        final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByEmail(EMAIL).orElseThrow();
+        final UserIdentityDbo identity = userIdentityRepository
+                .findByProviderAndSubject(LocalUserService.LOCAL_PROVIDER_ID, EMAIL)
+                .orElseThrow();
+
+        assertThat(credential.userId()).isEqualTo(EXISTING_USER_ID);
+        assertThat(passwordEncoder.matches(PASSWORD, credential.passwordHash())).isTrue();
+        assertThat(identity.userId()).isEqualTo(EXISTING_USER_ID);
+        assertThat(userProfileRepository.findByUserId(EXISTING_USER_ID)).isEmpty();
+        assertThat(loginCount(EXISTING_USER_ID)).isZero();
+        assertThat(localUserService.login(EMAIL, PASSWORD, CLIENT_IP, USER_AGENT).userId()).isEqualTo(EXISTING_USER_ID);
+        assertThat(loginCount(EXISTING_USER_ID)).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsLocalLoginLinkWhenAccountAlreadyHasLocalLogin() {
+        final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
+
+        assertThatThrownBy(() -> localUserService.linkLogin(
+                createResult.id(), new LocalUserRegistration("other@example.com", NEW_PASSWORD)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already has email and password");
+    }
+
+    @Test
+    void rejectsLocalLoginLinkWhenEmailBelongsToAnotherUser() {
+        localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
+        userRepository.insert(new UserDbo(EXISTING_USER_ID));
+
+        assertThatThrownBy(() -> localUserService.linkLogin(
+                EXISTING_USER_ID, new LocalUserRegistration(MIXED_CASE_EMAIL, NEW_PASSWORD)))
+                .isInstanceOf(LocalUserAlreadyExistsException.class);
+    }
+
+    @Test
     void rejectsPasswordChangeWithWrongCurrentPassword() {
         final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
 
@@ -138,6 +192,20 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         assertThatThrownBy(() -> localUserService.register(new LocalUserRegistration(
                 MIXED_CASE_EMAIL, PASSWORD)))
                 .isInstanceOf(LocalUserAlreadyExistsException.class);
+    }
+
+    @Test
+    void translatesCredentialDuplicateToLocalUserAlreadyExists() {
+        userRepository.insert(new UserDbo(EXISTING_USER_ID));
+        userPasswordCredentialRepository.insert(UserPasswordCredentialDbo.builder()
+                .userId(EXISTING_USER_ID)
+                .email(EMAIL)
+                .passwordHash(PASSWORD)
+                .build());
+
+        assertThatThrownBy(() -> localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD)))
+                .isInstanceOf(LocalUserAlreadyExistsException.class)
+                .hasCauseInstanceOf(UserPasswordCredentialAlreadyExistsException.class);
     }
 
     private int loginCount(UUID userId) {

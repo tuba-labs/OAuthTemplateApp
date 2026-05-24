@@ -33,8 +33,6 @@ public class ProfilePictureStorageService {
     private static final String OUTPUT_FORMAT = "jpg";
     private static final String OUTPUT_EXTENSION = ".jpg";
     private static final String THUMBNAIL_SUFFIX_SEPARATOR = "-";
-    private static final String INVALID_IMAGE_MESSAGE = "Profile picture must be a PNG, JPEG, or GIF image";
-    private static final String IMAGE_TOO_LARGE_MESSAGE = "Profile picture dimensions are too large";
     private static final Set<String> SUPPORTED_CONTENT_TYPES = Set.of("image/png", "image/jpeg", "image/gif");
 
     private final @NonNull ProfilePictureStorageProperties properties;
@@ -43,7 +41,7 @@ public class ProfilePictureStorageService {
         final byte[] imageBytes = readUploadedBytes(file);
         final String contentType = normalizedContentType(file);
         if (!SUPPORTED_CONTENT_TYPES.contains(contentType) || !hasExpectedHeader(imageBytes, contentType)) {
-            throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
         }
 
         final BufferedImage uploadedImage = decodeImage(imageBytes);
@@ -56,7 +54,7 @@ public class ProfilePictureStorageService {
         final Path target = storageDirectory.resolve(fileName).normalize();
         final Path thumbnailTarget = storageDirectory.resolve(thumbnailFileName).normalize();
         if (!target.startsWith(storageDirectory) || !thumbnailTarget.startsWith(storageDirectory)) {
-            throw new ProfilePictureStorageException("Invalid profile picture path");
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_PATH);
         }
 
         try {
@@ -64,7 +62,7 @@ public class ProfilePictureStorageService {
             replaceImage(profilePicture, target);
             replaceImage(thumbnailPicture, thumbnailTarget);
         } catch (IOException exception) {
-            throw new ProfilePictureStorageException("Could not store profile picture", exception);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.STORE_FAILED, exception);
         }
 
         return PUBLIC_URL_PREFIX + fileName;
@@ -82,28 +80,28 @@ public class ProfilePictureStorageService {
 
     private byte[] readUploadedBytes(@NonNull MultipartFile file) {
         if (file.isEmpty()) {
-            throw new ProfilePictureStorageException("Choose a profile picture to upload");
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.EMPTY_FILE);
         }
         if (file.getSize() > properties.maxBytes()) {
-            throw new ProfilePictureStorageException("Profile picture is too large");
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.FILE_TOO_LARGE);
         }
 
         try {
             return file.getBytes();
         } catch (IOException exception) {
-            throw new ProfilePictureStorageException("Could not read profile picture", exception);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.READ_FAILED, exception);
         }
     }
 
     private BufferedImage decodeImage(@NonNull byte[] imageBytes) {
         try (ImageInputStream imageInputStream = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
             if (imageInputStream == null) {
-                throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+                throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
             }
 
             final Iterator<ImageReader> imageReaders = ImageIO.getImageReaders(imageInputStream);
             if (!imageReaders.hasNext()) {
-                throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+                throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
             }
 
             final ImageReader imageReader = imageReaders.next();
@@ -112,23 +110,23 @@ public class ProfilePictureStorageService {
                 validateDimensions(imageReader.getWidth(0), imageReader.getHeight(0));
                 final BufferedImage image = imageReader.read(0);
                 if (image == null) {
-                    throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+                    throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
                 }
                 return image;
             } finally {
                 imageReader.dispose();
             }
         } catch (IOException exception) {
-            throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
         }
     }
 
     private void validateDimensions(int width, int height) {
         if (width <= 0 || height <= 0) {
-            throw new ProfilePictureStorageException(INVALID_IMAGE_MESSAGE);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.INVALID_IMAGE);
         }
         if (width > properties.maxWidthPixels() || height > properties.maxHeightPixels()) {
-            throw new ProfilePictureStorageException(IMAGE_TOO_LARGE_MESSAGE);
+            throw new ProfilePictureStorageException(ProfilePictureStorageFailure.DIMENSIONS_TOO_LARGE);
         }
     }
 

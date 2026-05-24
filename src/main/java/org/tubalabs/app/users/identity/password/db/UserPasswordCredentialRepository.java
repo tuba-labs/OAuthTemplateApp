@@ -2,6 +2,7 @@ package org.tubalabs.app.users.identity.password.db;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.DataClassRowMapper;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -45,9 +46,13 @@ public class UserPasswordCredentialRepository {
 
     public void insert(@NonNull UserPasswordCredentialDbo dbo) {
         final LinkedHashMap<String, Object> parameters = sqlRecordIntrospector.paramsFromRecord(TABLE_NAME, dbo, Set.of());
-        jdbcClient.sql(sqlRecordIntrospector.insertSql(TABLE_NAME, parameters))
-                .params(parameters)
-                .update();
+        try {
+            jdbcClient.sql(sqlRecordIntrospector.insertSql(TABLE_NAME, parameters))
+                    .params(parameters)
+                    .update();
+        } catch (DuplicateKeyException exception) {
+            throw new UserPasswordCredentialAlreadyExistsException(dbo.userId(), dbo.email(), exception);
+        }
     }
 
     public void updatePasswordHash(@NonNull UUID userId, @NonNull String passwordHash) {
@@ -60,6 +65,15 @@ public class UserPasswordCredentialRepository {
                 """)
                 .param("user_id", userId)
                 .param("password_hash", passwordHash)
+                .update();
+    }
+
+    public int deleteByUserId(@NonNull UUID userId) {
+        return jdbcClient.sql("""
+                        DELETE FROM user_password_credential
+                        WHERE user_id = :user_id
+                """)
+                .param("user_id", userId)
                 .update();
     }
 }

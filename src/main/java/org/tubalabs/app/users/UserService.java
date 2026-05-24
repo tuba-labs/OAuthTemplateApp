@@ -55,7 +55,7 @@ public class UserService {
 
         userRepository.insert(new UserDbo(userId));
 
-        userIdentityRepository.insert(newIdentity(identityId, userId, externalIdentity));
+        final UserIdentityDbo identity = userIdentityRepository.insert(newIdentity(identityId, userId, externalIdentity));
 
         userProfileService.createInitialProfile(
                 userId,
@@ -71,6 +71,7 @@ public class UserService {
                 userAgent));
 
         return LoginResult.builder()
+                .identityId(identity.id())
                 .userId(userId)
                 .providerId(externalIdentity.providerId())
                 .subject(externalIdentity.subject())
@@ -105,6 +106,7 @@ public class UserService {
                 userAgent));
 
         return LoginResult.builder()
+                .identityId(localIdentity.id())
                 .userId(localIdentity.userId())
                 .providerId(localIdentity.providerId())
                 .subject(localIdentity.subject())

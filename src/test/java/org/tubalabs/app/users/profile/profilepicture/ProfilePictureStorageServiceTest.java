@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class ProfilePictureStorageServiceTest {
 
@@ -36,10 +36,6 @@ class ProfilePictureStorageServiceTest {
     private static final String PROFILE_PICTURE_URL = ProfilePictureStorageService.PUBLIC_URL_PREFIX + USER_ID + ".jpg";
     private static final String THUMBNAIL_URL =
             ProfilePictureStorageService.PUBLIC_URL_PREFIX + USER_ID + "-" + THUMBNAIL_SIZE_PIXELS + ".jpg";
-    private static final String INVALID_IMAGE_MESSAGE = "Profile picture must be a PNG, JPEG, or GIF image";
-    private static final String FILE_TOO_LARGE_MESSAGE = "Profile picture is too large";
-    private static final String DIMENSIONS_TOO_LARGE_MESSAGE = "Profile picture dimensions are too large";
-
     @TempDir
     private Path storageDirectory;
 
@@ -93,9 +89,10 @@ class ProfilePictureStorageServiceTest {
         final MockMultipartFile file = new MockMultipartFile(
                 FILE_PARAMETER, SVG_FILE_NAME, SVG_CONTENT_TYPE, "<svg></svg>".getBytes(StandardCharsets.US_ASCII));
 
-        assertThatThrownBy(() -> service.store(USER_ID, file))
-                .isInstanceOf(ProfilePictureStorageException.class)
-                .hasMessage(INVALID_IMAGE_MESSAGE);
+        assertThatExceptionOfType(ProfilePictureStorageException.class)
+                .isThrownBy(() -> service.store(USER_ID, file))
+                .satisfies(exception -> assertThat(exception.reason())
+                        .isEqualTo(ProfilePictureStorageFailure.INVALID_IMAGE));
     }
 
     @Test
@@ -104,18 +101,20 @@ class ProfilePictureStorageServiceTest {
         final MockMultipartFile file = new MockMultipartFile(FILE_PARAMETER, PNG_FILE_NAME, PNG_CONTENT_TYPE, new byte[]{
                 (byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00});
 
-        assertThatThrownBy(() -> service.store(USER_ID, file))
-                .isInstanceOf(ProfilePictureStorageException.class)
-                .hasMessage(INVALID_IMAGE_MESSAGE);
+        assertThatExceptionOfType(ProfilePictureStorageException.class)
+                .isThrownBy(() -> service.store(USER_ID, file))
+                .satisfies(exception -> assertThat(exception.reason())
+                        .isEqualTo(ProfilePictureStorageFailure.INVALID_IMAGE));
     }
 
     @Test
     void rejectsFileOverConfiguredSize() throws Exception {
         final ProfilePictureStorageService service = service(4);
 
-        assertThatThrownBy(() -> service.store(USER_ID, pngFile()))
-                .isInstanceOf(ProfilePictureStorageException.class)
-                .hasMessage(FILE_TOO_LARGE_MESSAGE);
+        assertThatExceptionOfType(ProfilePictureStorageException.class)
+                .isThrownBy(() -> service.store(USER_ID, pngFile()))
+                .satisfies(exception -> assertThat(exception.reason())
+                        .isEqualTo(ProfilePictureStorageFailure.FILE_TOO_LARGE));
     }
 
     @Test
@@ -123,9 +122,10 @@ class ProfilePictureStorageServiceTest {
         final ProfilePictureStorageService service =
                 service(MAX_BYTES, TARGET_SIZE_PIXELS, THUMBNAIL_SIZE_PIXELS, 100, MAX_DIMENSION_PIXELS);
 
-        assertThatThrownBy(() -> service.store(USER_ID, pngFile(128, 20)))
-                .isInstanceOf(ProfilePictureStorageException.class)
-                .hasMessage(DIMENSIONS_TOO_LARGE_MESSAGE);
+        assertThatExceptionOfType(ProfilePictureStorageException.class)
+                .isThrownBy(() -> service.store(USER_ID, pngFile(128, 20)))
+                .satisfies(exception -> assertThat(exception.reason())
+                        .isEqualTo(ProfilePictureStorageFailure.DIMENSIONS_TOO_LARGE));
     }
 
     private ProfilePictureStorageService service(long maxBytes) {

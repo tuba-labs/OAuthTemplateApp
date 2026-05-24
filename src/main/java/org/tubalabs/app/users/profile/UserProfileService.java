@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
-import org.tubalabs.app.users.profile.api.ui.UserProfileUpdate;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.db.UserProfileRepository;
 

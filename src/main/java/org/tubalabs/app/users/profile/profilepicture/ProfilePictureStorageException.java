@@ -4,19 +4,19 @@ import lombok.NonNull;
 
 public class ProfilePictureStorageException extends RuntimeException {
 
-    private final String userMessage;
+    private final ProfilePictureStorageFailure reason;
 
-    public ProfilePictureStorageException(@NonNull String userMessage) {
-        super(userMessage);
-        this.userMessage = userMessage;
+    public ProfilePictureStorageException(@NonNull ProfilePictureStorageFailure reason) {
+        super("Profile picture storage failed: " + reason);
+        this.reason = reason;
     }
 
-    public ProfilePictureStorageException(@NonNull String userMessage, Throwable cause) {
-        super(userMessage, cause);
-        this.userMessage = userMessage;
+    public ProfilePictureStorageException(@NonNull ProfilePictureStorageFailure reason, Throwable cause) {
+        super("Profile picture storage failed: " + reason, cause);
+        this.reason = reason;
     }
 
-    public String userMessage() {
-        return userMessage;
+    public ProfilePictureStorageFailure reason() {
+        return reason;
     }
 }

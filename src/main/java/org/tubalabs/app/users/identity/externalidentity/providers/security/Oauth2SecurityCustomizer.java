@@ -1,5 +1,7 @@
 package org.tubalabs.app.users.identity.externalidentity.providers.security;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.Cleanup;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -8,30 +10,47 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.tubalabs.app.security.SecurityConfig;
 import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.UserService;
+import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkService;
+import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSession;
+import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSession.PendingExternalIdentityLink;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
+import org.tubalabs.app.users.identity.externalidentity.IdentityLinkException;
+import org.tubalabs.app.users.identity.externalidentity.IdentityLinkFailure;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProvider;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProviders;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.Objects;
+import java.util.Optional;
 
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
 public class Oauth2SecurityCustomizer {
 
+    private static final String PROFILE_PATH = "/profile";
+    private static final String PROFILE_LOGIN_TYPES_PATH = "/profile/login-types";
+
     private final UserService userService;
+    private final ExternalIdentityLinkService externalIdentityLinkService;
+    private final ExternalIdentityLinkSession externalIdentityLinkSession;
     private final ExternalIdentityProviders externalIdentityProviders;
     private final ProfileSetupSession profileSetupSession;
     private final ProfileSetupRequirementService profileSetupRequirementService;
+    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     @Bean
     public SecurityConfig.HttpSecurityCustomizer oauth2HttpSecurityCustomizer(
@@ -57,22 +76,74 @@ public class Oauth2SecurityCustomizer {
             final ExternalIdentityProvider provider = externalIdentityProviders.getProvider(providerId);
             final ExternalIdentity identity = provider.getIdentity(oauth2User);
             @Cleanup MDC.MDCCloseable ignore2 = MDC.putCloseable("subject", identity.subject());
-            final String clientIp = request.getRemoteAddr() == null ? "" : request.getRemoteAddr();
-            final String userAgent = Objects.requireNonNullElse(request.getHeader("User-Agent"), "");
+            final String clientIp = clientIp(request);
+            final String userAgent = userAgent(request);
+
+            final Optional<PendingExternalIdentityLink> pendingLink = externalIdentityLinkSession.pending(request);
+            if (pendingLink.isPresent()) {
+                linkExternalIdentity(request, response, identity, providerId, clientIp, userAgent, pendingLink.orElseThrow());
+                return;
+            }
+
             final LoginResult result = userService.login(identity, clientIp, userAgent);
 
             log.info("Logged in user: {}", result);
 
             if (result.newUser()) {
                 profileSetupSession.requireProfileSetup(request);
-                response.sendRedirect("/profile");
+                response.sendRedirect(PROFILE_PATH);
                 return;
             }
             if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
-                response.sendRedirect("/profile");
+                response.sendRedirect(PROFILE_PATH);
                 return;
             }
             response.sendRedirect("/remember-login");
         };
+    }
+
+    private void linkExternalIdentity(HttpServletRequest request,
+                                      HttpServletResponse response,
+                                      ExternalIdentity identity,
+                                      String providerId,
+                                      String clientIp,
+                                      String userAgent,
+                                      PendingExternalIdentityLink pendingLink) throws java.io.IOException {
+        if (!pendingLink.providerId().equals(providerId)) {
+            restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
+            externalIdentityLinkSession.fail(request, IdentityLinkFailure.PROVIDER_MISMATCH);
+            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+            return;
+        }
+
+        try {
+            externalIdentityLinkService.link(pendingLink.userId(), identity, clientIp, userAgent);
+            externalIdentityLinkSession.complete(request);
+            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+        } catch (IdentityLinkException exception) {
+            restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
+            externalIdentityLinkSession.fail(request, exception.reason());
+            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+        } catch (RuntimeException exception) {
+            restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
+            throw exception;
+        }
+    }
+
+    private void restoreOriginalAuthentication(Authentication authentication,
+                                               HttpServletRequest request,
+                                               HttpServletResponse response) {
+        final SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        securityContextRepository.saveContext(securityContext, request, response);
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        return Objects.requireNonNullElse(request.getRemoteAddr(), "");
+    }
+
+    private String userAgent(HttpServletRequest request) {
+        return Objects.requireNonNullElse(request.getHeader("User-Agent"), "");
     }
 }
