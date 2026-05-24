@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.UserService;
+import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkService;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSession;
@@ -52,13 +53,15 @@ class Oauth2SecurityCustomizerTest {
     private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
     private final ProfileSetupRequirementService profileSetupRequirementService =
             Mockito.mock(ProfileSetupRequirementService.class);
+    private final CurrentUserSession currentUserSession = Mockito.mock(CurrentUserSession.class);
     private final Oauth2SecurityCustomizer customizer = new Oauth2SecurityCustomizer(
             userService,
             externalIdentityLinkService,
             externalIdentityLinkSession,
             externalIdentityProviders,
             profileSetupSession,
-            profileSetupRequirementService);
+            profileSetupRequirementService,
+            currentUserSession);
 
     @AfterEach
     void clearSecurityContext() {
@@ -81,6 +84,7 @@ class Oauth2SecurityCustomizerTest {
 
         verify(externalIdentityLinkService).link(USER_ID, EXTERNAL_IDENTITY, CLIENT_IP, USER_AGENT);
         verify(externalIdentityLinkSession).complete(request);
+        verify(currentUserSession).refresh(request, USER_ID, false);
         verifyNoInteractions(userService);
         assertThat(response.getRedirectedUrl()).isEqualTo("/profile/login-types");
     }
@@ -146,6 +150,7 @@ class Oauth2SecurityCustomizerTest {
         successHandler().onAuthenticationSuccess(request, response, authentication);
 
         verify(profileSetupRequirementService).requireSetupIfProfileIncomplete(request, USER_ID);
+        verify(currentUserSession).refresh(request, USER_ID, false);
         assertThat(response.getRedirectedUrl()).isEqualTo("/remember-login");
     }
 

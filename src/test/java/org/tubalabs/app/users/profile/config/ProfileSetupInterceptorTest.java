@@ -21,11 +21,10 @@ class ProfileSetupInterceptorTest {
 
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
-    private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
     private final ProfileSetupRequirementService profileSetupRequirementService = Mockito.mock(ProfileSetupRequirementService.class);
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
     private final ProfileSetupInterceptor interceptor =
-            new ProfileSetupInterceptor(profileSetupSession, profileSetupRequirementService, currentUserIdResolver);
+            new ProfileSetupInterceptor(profileSetupRequirementService, currentUserIdResolver);
 
     @AfterEach
     void clearSecurityContext() {

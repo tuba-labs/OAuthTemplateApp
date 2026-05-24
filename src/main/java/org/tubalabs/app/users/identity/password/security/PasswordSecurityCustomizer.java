@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.RememberMeServices;
 import org.tubalabs.app.security.SecurityConfig;
 import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.LoginResult;
+import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.password.LocalUserService;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 
@@ -25,6 +26,7 @@ public class PasswordSecurityCustomizer {
     private final LocalUserService localUserService;
     private final RememberMeServices rememberMeServices;
     private final ProfileSetupRequirementService profileSetupRequirementService;
+    private final CurrentUserSession currentUserSession;
 
     @Bean
     public SecurityConfig.HttpSecurityCustomizer passwordHttpSecurityCustomizer(
@@ -52,7 +54,10 @@ public class PasswordSecurityCustomizer {
                     authentication.getName(), clientIp(request), userAgent(request));
             log.info("Logged in user with password: {}", result);
 
-            if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
+            final boolean profileSetupRequired =
+                    profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId());
+            currentUserSession.refresh(request, result.userId(), profileSetupRequired);
+            if (profileSetupRequired) {
                 response.sendRedirect("/profile");
                 return;
             }

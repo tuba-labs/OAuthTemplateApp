@@ -105,6 +105,7 @@ a {
     display: flex;
     height: 56px;
     align-items: center;
+    gap: 12px;
     padding: 0 16px;
     background: var(--panel);
     border-bottom: 1px solid var(--panel-border);
@@ -113,6 +114,48 @@ a {
 
 .app-menu {
     position: relative;
+    flex: 0 0 auto;
+}
+
+.app-primary-nav {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.app-primary-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.app-primary-nav-link {
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-height: 40px;
+    max-width: 180px;
+    align-items: center;
+    padding: 8px 12px;
+    overflow: hidden;
+    color: var(--text);
+    border-radius: 6px;
+    font-weight: 650;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-primary-nav-link:hover,
+.app-primary-nav-link:focus-visible,
+.app-primary-nav-link-active {
+    color: var(--text);
+    background: var(--option-hover-background);
+    outline: none;
+}
+
+.app-primary-nav-branch-label {
+    color: var(--muted);
 }
 
 .app-menu-toggle {
@@ -179,9 +222,35 @@ a {
     flex-direction: column;
     width: min(280px, calc(100vw - 32px));
     padding: 16px;
+    overflow: auto;
     background: var(--panel);
     border-right: 1px solid var(--panel-border);
     box-shadow: 18px 0 45px rgba(0, 0, 0, 0.26);
+}
+
+.app-menu-section-title {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.app-menu-tree {
+    display: grid;
+    gap: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.app-menu-tree .app-menu-tree {
+    padding-left: 12px;
+    margin: 4px 0 0 10px;
+    border-left: 1px solid var(--panel-border);
+}
+
+.app-menu-tree-item {
+    min-width: 0;
 }
 
 .app-menu-link {
@@ -196,6 +265,22 @@ a {
     overflow-wrap: anywhere;
 }
 
+.app-menu-tree .app-menu-tree .app-menu-link {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-weight: 550;
+}
+
+.app-menu-link-active {
+    color: var(--text);
+    background: var(--option-hover-background);
+}
+
+.app-menu-branch-label {
+    color: var(--muted);
+    cursor: default;
+}
+
 .app-menu-link:hover,
 .app-menu-link:focus-visible {
     color: var(--text);
@@ -203,12 +288,9 @@ a {
     outline: none;
 }
 
-.app-menu-bottom {
-    display: flex;
-    justify-content: flex-start;
-    padding-top: 16px;
-    margin-top: auto;
-    border-top: 1px solid var(--panel-border);
+.app-menu-theme-toggle {
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 
 .panel {
@@ -813,6 +895,20 @@ input:focus {
 }
 
 @media (max-width: 420px) {
+    .app-menu-bar {
+        gap: 8px;
+        padding: 0 10px;
+    }
+
+    .app-primary-nav-link {
+        max-width: 140px;
+        padding: 8px 10px;
+    }
+
+    .app-menu-panel {
+        width: min(280px, calc(100vw - 16px));
+    }
+
     .button-row {
         grid-template-columns: 1fr;
     }

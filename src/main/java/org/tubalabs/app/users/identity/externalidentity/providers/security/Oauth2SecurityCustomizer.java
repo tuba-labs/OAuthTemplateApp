@@ -22,6 +22,7 @@ import org.tubalabs.app.security.SecurityConfig;
 import org.tubalabs.app.security.SecurityAllowedPaths;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.UserService;
+import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkService;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSession;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSession.PendingExternalIdentityLink;
@@ -31,6 +32,8 @@ import org.tubalabs.app.users.identity.externalidentity.IdentityLinkFailure;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProvider;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProviders;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
+import org.tubalabs.app.ui.profile.logintypes.ProfileLoginTypesPage;
+import org.tubalabs.app.ui.profile.profile.ProfilePage;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.Objects;
@@ -41,15 +44,13 @@ import java.util.Optional;
 @Slf4j
 public class Oauth2SecurityCustomizer {
 
-    private static final String PROFILE_PATH = "/profile";
-    private static final String PROFILE_LOGIN_TYPES_PATH = "/profile/login-types";
-
     private final UserService userService;
     private final ExternalIdentityLinkService externalIdentityLinkService;
     private final ExternalIdentityLinkSession externalIdentityLinkSession;
     private final ExternalIdentityProviders externalIdentityProviders;
     private final ProfileSetupSession profileSetupSession;
     private final ProfileSetupRequirementService profileSetupRequirementService;
+    private final CurrentUserSession currentUserSession;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
     @Bean
@@ -91,11 +92,15 @@ public class Oauth2SecurityCustomizer {
 
             if (result.newUser()) {
                 profileSetupSession.requireProfileSetup(request);
-                response.sendRedirect(PROFILE_PATH);
+                currentUserSession.refresh(request, result.userId(), true);
+                response.sendRedirect(ProfilePage.RELATIVE_URL);
                 return;
             }
-            if (profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId())) {
-                response.sendRedirect(PROFILE_PATH);
+            final boolean profileSetupRequired =
+                    profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId());
+            currentUserSession.refresh(request, result.userId(), profileSetupRequired);
+            if (profileSetupRequired) {
+                response.sendRedirect(ProfilePage.RELATIVE_URL);
                 return;
             }
             response.sendRedirect("/remember-login");
@@ -112,18 +117,19 @@ public class Oauth2SecurityCustomizer {
         if (!pendingLink.providerId().equals(providerId)) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             externalIdentityLinkSession.fail(request, IdentityLinkFailure.PROVIDER_MISMATCH);
-            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
             return;
         }
 
         try {
             externalIdentityLinkService.link(pendingLink.userId(), identity, clientIp, userAgent);
             externalIdentityLinkSession.complete(request);
-            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+            currentUserSession.refresh(request, pendingLink.userId(), profileSetupSession.isProfileSetupRequired(request));
+            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
         } catch (IdentityLinkException exception) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             externalIdentityLinkSession.fail(request, exception.reason());
-            response.sendRedirect(PROFILE_LOGIN_TYPES_PATH);
+            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
         } catch (RuntimeException exception) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             throw exception;

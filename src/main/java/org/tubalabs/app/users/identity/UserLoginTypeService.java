@@ -85,8 +85,7 @@ public class UserLoginTypeService {
         final boolean linked = linkedIdentities.stream()
                 .anyMatch(identity -> identity.providerId().equals(providerId));
         if (!linked) {
-            //already deleted
-           return;
+            return;
         }
         if (linkedIdentities.size() <= 1) {
             throw new LoginTypeUnlinkException(LoginTypeUnlinkFailure.LAST_LOGIN_TYPE);

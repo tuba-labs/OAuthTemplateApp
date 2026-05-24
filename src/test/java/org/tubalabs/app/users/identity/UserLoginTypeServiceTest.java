@@ -131,15 +131,13 @@ class UserLoginTypeServiceTest {
     }
 
     @Test
-    void rejectsUnlinkingLoginTypeThatIsNotLinked() {
+    void ignoresUnlinkingLoginTypeThatIsNotLinked() {
         when(userIdentityRepository.findByUserId(USER_ID)).thenReturn(List.of(
                 linkedIdentity(GOOGLE_PROVIDER_ID),
                 linkedIdentity(LocalUserService.LOCAL_PROVIDER_ID)));
 
-        assertThatExceptionOfType(LoginTypeUnlinkException.class)
-                .isThrownBy(() -> userLoginTypeService.unlinkLoginType(
-                        USER_ID, GITHUB_PROVIDER_ID, Optional.of(LocalUserService.LOCAL_PROVIDER_ID)))
-                .satisfies(exception -> assertThat(exception.reason()).isEqualTo(LoginTypeUnlinkFailure.NOT_LINKED));
+        userLoginTypeService.unlinkLoginType(USER_ID, GITHUB_PROVIDER_ID, Optional.of(LocalUserService.LOCAL_PROVIDER_ID));
+
         Mockito.verify(userIdentityRepository, Mockito.never()).deleteByUserIdAndProviderId(USER_ID, GITHUB_PROVIDER_ID);
     }
 

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login types</title>
+    <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/profile-actions.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="app-page">
+<div th:replace="~{navigation/menu :: authenticatedMenu}"></div>
+<main class="app-content">
+<section class="panel panel-wide">
+    <div class="profile-title-row">
+        <div th:replace="~{users/profile/profile-fragments :: profileMenu}"></div>
+        <h1 class="page-title">Login types</h1>
+    </div>
+    <p class="page-subtitle">Manage the ways this account can be used to log in.</p>
+    <p class="message message-success" th:if="${loginTypeLinkedMessage}" th:text="${loginTypeLinkedMessage}">Login type linked.</p>
+    <p class="message message-error" th:if="${loginTypeErrorMessage}" th:text="${loginTypeErrorMessage}">Could not update login type.</p>
+
+    <div class="login-type-list" th:if="${localLoginTypeAvailable or !#lists.isEmpty(loginTypeOptions)}">
+        <div class="login-type-row" th:if="${localLoginTypeAvailable}">
+            <span class="login-type-name">Email and password</span>
+            <a class="button button-secondary login-type-action-button" th:href="@{/profile/login-types/local/link}">Link</a>
+        </div>
+        <div class="login-type-row" th:each="option : ${loginTypeOptions}">
+            <span class="login-type-name" th:text="${option.label}">Google</span>
+            <form class="login-type-action-form"
+                  method="post"
+                  th:action="@{/profile/login-types/{providerId}/link(providerId=${option.providerId})}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-secondary login-type-action-button" type="submit">Link</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="login-type-list secondary-form" th:if="${!#lists.isEmpty(linkedLoginTypeOptions)}">
+        <div class="login-type-row" th:each="option : ${linkedLoginTypeOptions}">
+            <span class="login-type-name" th:text="${option.label}">Google</span>
+            <form class="login-type-action-form"
+                  th:if="${option.unlinkAvailable}"
+                  method="post"
+                  th:action="@{/profile/login-types/{providerId}/unlink(providerId=${option.providerId})}"
+                  th:attr="data-confirm-title=|Unlink ${option.label}?|"
+                  data-confirm-action="Unlink">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="button button-danger login-type-action-button" type="submit">Unlink</button>
+            </form>
+            <span class="field-help login-type-status"
+                  th:unless="${option.unlinkAvailable}"
+                  th:text="${option.status}">Current login</span>
+        </div>
+    </div>
+
+    <div class="profile-actions">
+        <a class="button button-secondary" th:href="@{/profile}">Back to profile</a>
+    </div>
+
+    <div th:replace="~{users/profile/profile-fragments :: confirmationDialog}"></div>
+</section>
+</main>
+</body>
+</html>

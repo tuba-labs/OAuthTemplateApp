@@ -20,7 +20,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProfileSetupInterceptor implements HandlerInterceptor {
 
-    private final @NonNull ProfileSetupSession profileSetupSession;
     private final @NonNull ProfileSetupRequirementService profileSetupRequirementService;
     private final @NonNull CurrentUserIdResolver currentUserIdResolver;
 
