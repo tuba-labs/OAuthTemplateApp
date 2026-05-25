@@ -7,24 +7,18 @@ import java.util.Objects;
 
 public record NavigationMenuDto(
         @NonNull List<NavigationMenuItemDto> primaryItems,
-        NavigationSectionDto activeSection) {
+        @NonNull List<NavigationMenuItemDto> breadcrumbs) {
 
     public NavigationMenuDto {
         primaryItems = List.copyOf(Objects.requireNonNull(primaryItems, "primaryItems"));
+        breadcrumbs = List.copyOf(Objects.requireNonNull(breadcrumbs, "breadcrumbs"));
     }
 
-    public boolean hasSectionNavigation() {
-        return activeSection != null && activeSection.hasChildItems();
+    public boolean hasMenuItems() {
+        return !primaryItems.isEmpty();
     }
 
-    public String sectionLabel() {
-        return activeSection == null ? "" : activeSection.label();
-    }
-
-    public List<NavigationMenuItemDto> sectionItems() {
-        if (activeSection == null) {
-            return List.of();
-        }
-        return activeSection.menuItems();
+    public boolean hasBreadcrumbs() {
+        return !breadcrumbs.isEmpty();
     }
 }

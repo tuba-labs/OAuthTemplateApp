@@ -19,4 +19,8 @@ public sealed interface NavigablePage permits MainPage, SubPage {
     default String relativeUrl() {
         return model().relativeUrl();
     }
+
+    default boolean visibleInNavigation() {
+        return model().visibleInNavigation();
+    }
 }

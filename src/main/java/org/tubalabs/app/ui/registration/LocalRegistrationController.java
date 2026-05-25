@@ -27,7 +27,7 @@ public class LocalRegistrationController {
 
     private static final String REGISTRATION_ERROR_ATTRIBUTE = "registrationError";
     private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
-    private static final String REGISTER_VIEW = "users/password/api/register";
+    private static final String REGISTER_VIEW = "ui/registration/register";
     private static final String REGISTER_REDIRECT = "redirect:/register";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
 

@@ -60,10 +60,10 @@ import static org.mockito.Mockito.when;
 
 class UserProfileControllerTest {
 
-    private static final String PROFILE_VIEW = "users/profile/profile";
-    private static final String PROFILE_PASSWORD_VIEW = "users/profile/profile-password";
-    private static final String PROFILE_LOGIN_TYPES_VIEW = "users/profile/profile-login-types";
-    private static final String PROFILE_LOCAL_LOGIN_TYPE_VIEW = "users/profile/profile-local-login-type";
+    private static final String PROFILE_VIEW = "ui/profile/profile/profile";
+    private static final String PROFILE_PASSWORD_VIEW = "ui/profile/changepassword/profile-password";
+    private static final String PROFILE_LOGIN_TYPES_VIEW = "ui/profile/logintypes/profile-login-types";
+    private static final String PROFILE_LOCAL_LOGIN_TYPE_VIEW = "ui/profile/logintypes/local/profile-local-login-type";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
     private static final String PROFILE_LOGIN_TYPES_REDIRECT = "redirect:/profile/login-types";
     private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";

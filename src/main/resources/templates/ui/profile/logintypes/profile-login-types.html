@@ -9,11 +9,10 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-page">
-<div th:replace="~{navigation/menu :: authenticatedMenu}"></div>
+<div th:replace="~{navigation/ui/menu :: authenticatedMenu}"></div>
 <main class="app-content">
 <section class="panel panel-wide">
     <div class="profile-title-row">
-        <div th:replace="~{users/profile/profile-fragments :: profileMenu}"></div>
         <h1 class="page-title">Login types</h1>
     </div>
     <p class="page-subtitle">Manage the ways this account can be used to log in.</p>
@@ -54,11 +53,7 @@
         </div>
     </div>
 
-    <div class="profile-actions">
-        <a class="button button-secondary" th:href="@{/profile}">Back to profile</a>
-    </div>
-
-    <div th:replace="~{users/profile/profile-fragments :: confirmationDialog}"></div>
+    <div th:replace="~{ui/profile/fragments/profile-fragments :: confirmationDialog}"></div>
 </section>
 </main>
 </body>

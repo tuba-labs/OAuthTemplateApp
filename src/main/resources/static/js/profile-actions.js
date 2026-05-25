@@ -1,21 +1,7 @@
 (function () {
     document.addEventListener("DOMContentLoaded", function () {
-        wireProfileMenuLinks();
         wireConfirmationDialog();
     });
-
-    function wireProfileMenuLinks() {
-        var links = document.querySelectorAll(".profile-menu a.profile-menu-item");
-
-        links.forEach(function (link) {
-            link.addEventListener("click", function () {
-                var menu = link.closest("details");
-                if (menu) {
-                    menu.open = false;
-                }
-            });
-        });
-    }
 
     function wireConfirmationDialog() {
         var dialog = document.querySelector("[data-confirm-dialog]");
@@ -39,11 +25,6 @@
                 pendingForm = form;
                 title.textContent = form.dataset.confirmTitle || "Confirm action";
                 submitButton.textContent = form.dataset.confirmAction || "Confirm";
-
-                var menu = form.closest("details");
-                if (menu) {
-                    menu.open = false;
-                }
 
                 dialog.showModal();
             });

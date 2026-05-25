@@ -11,7 +11,7 @@ public final class ProfilePage {
 
     public static final String RELATIVE_URL = "/profile";
     public static final String REDIRECT = "redirect:" + RELATIVE_URL;
-    public static final String VIEW = "users/profile/profile";
+    public static final String VIEW = "ui/profile/profile/profile";
     public static final MainPage PAGE = new MainPage(new PageModel(
             "Profile",
             "Manage your profile",

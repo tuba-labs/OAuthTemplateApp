@@ -18,8 +18,8 @@ import java.util.Optional;
 @Controller
 public class LoginController {
 
-    private static final String LOGIN_VIEW = "security/login";
-    private static final String LOCAL_LOGIN_VIEW = "security/login-local";
+    private static final String LOGIN_VIEW = "ui/login/login";
+    private static final String LOCAL_LOGIN_VIEW = "ui/login/login-local";
     private static final LoginOptionDto LOCAL_LOGIN_OPTION =
             new LoginOptionDto("Continue with email and password", "/login/local");
 

@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Link email and password</title>
     <script th:src="@{/js/theme.js}"></script>
-    <script th:src="@{/js/profile-actions.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-page">
-<div th:replace="~{navigation/menu :: authenticatedMenu}"></div>
+<div th:replace="~{navigation/ui/menu :: authenticatedMenu}"></div>
 <main class="app-content">
 <section class="panel panel-wide">
     <div class="profile-title-row">
-        <div th:replace="~{users/profile/profile-fragments :: profileMenu}"></div>
         <h1 class="page-title">Link email and password</h1>
     </div>
     <p class="page-subtitle">Add an email and password login to this account.</p>
@@ -46,8 +44,6 @@
             <button class="button" type="submit">Link</button>
         </div>
     </form>
-
-    <div th:replace="~{users/profile/profile-fragments :: confirmationDialog}"></div>
 </section>
 </main>
 </body>

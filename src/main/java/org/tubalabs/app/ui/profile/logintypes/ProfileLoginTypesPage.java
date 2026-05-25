@@ -11,7 +11,7 @@ public final class ProfileLoginTypesPage {
 
     public static final String RELATIVE_URL = ProfilePage.RELATIVE_URL + "/login-types";
     public static final String REDIRECT = "redirect:" + RELATIVE_URL;
-    public static final String VIEW = "users/profile/profile-login-types";
+    public static final String VIEW = "ui/profile/logintypes/profile-login-types";
     public static final SubPage PAGE = new SubPage(new PageModel(
             "Login types",
             "Manage login types",

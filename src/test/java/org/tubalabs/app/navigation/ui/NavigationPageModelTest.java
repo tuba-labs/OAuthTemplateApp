@@ -16,44 +16,55 @@ class NavigationPageModelTest {
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String DISPLAY_NAME = "Person Name";
     private static final String EMAIL = "person@example.com";
+    private static final String HOME_LABEL = "Home";
+    private static final String LOGIN_TYPES_LABEL = "Login types";
+    private static final String CHANGE_PASSWORD_LABEL = "Change password";
+    private static final String LINK_EMAIL_PASSWORD_LABEL = "Link email and password";
 
     private final NavigationPageModel navigationPageModel = new NavigationPageModel(new NavigationCatalog());
 
     @Test
-    void buildsPrimaryNavigationAndProfileSectionForLocalCurrentUser() {
+    void buildsNavigationTreeForLocalCurrentUser() {
         final CurrentUser currentUser = new CurrentUser(USER_ID, DISPLAY_NAME, null, false, EMAIL, false);
 
         final NavigationMenuDto navigationMenu = navigationPageModel.navigationMenu(currentUser, "/profile/password");
 
         assertThat(navigationMenu.primaryItems())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly("Home", DISPLAY_NAME);
+                .containsExactly(HOME_LABEL, DISPLAY_NAME);
         assertThat(navigationMenu.primaryItems())
                 .extracting(NavigationMenuItemDto::relativeUrl)
                 .containsExactly("/", "/profile");
-        assertThat(navigationMenu.hasSectionNavigation()).isTrue();
-        assertThat(navigationMenu.sectionLabel()).isEqualTo(DISPLAY_NAME);
-        assertThat(navigationMenu.sectionItems())
+        assertThat(navigationMenu.hasMenuItems()).isTrue();
+        assertThat(navigationMenu.primaryItems().get(1).active()).isFalse();
+        assertThat(navigationMenu.primaryItems().get(1).children())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly(DISPLAY_NAME, "Login types", "Change password");
-        assertThat(navigationMenu.sectionItems().getFirst().children()).isEmpty();
-        assertThat(navigationMenu.sectionItems().get(1).children()).isEmpty();
-        assertThat(navigationMenu.sectionItems().get(2).active()).isTrue();
+                .containsExactly(LOGIN_TYPES_LABEL, CHANGE_PASSWORD_LABEL);
+        assertThat(navigationMenu.primaryItems().get(1).children().get(1).active()).isTrue();
+        assertThat(navigationMenu.breadcrumbs())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(DISPLAY_NAME, CHANGE_PASSWORD_LABEL);
     }
 
     @Test
-    void includesLocalLoginLinkForExternalCurrentUser() {
+    void hidesLocalLoginLinkFromNavigationForExternalCurrentUser() {
         final CurrentUser currentUser = new CurrentUser(USER_ID, DISPLAY_NAME, null, false, null, true);
 
         final NavigationMenuDto navigationMenu = navigationPageModel.navigationMenu(currentUser, "/profile/login-types");
 
-        assertThat(navigationMenu.sectionItems())
+        assertThat(navigationMenu.primaryItems())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly(DISPLAY_NAME, "Login types");
-        assertThat(navigationMenu.sectionItems().get(1).active()).isTrue();
-        assertThat(navigationMenu.sectionItems().get(1).children())
+                .containsExactly(HOME_LABEL, DISPLAY_NAME);
+        assertThat(navigationMenu.hasMenuItems()).isTrue();
+        assertThat(navigationMenu.primaryItems().get(1).active()).isFalse();
+        assertThat(navigationMenu.primaryItems().get(1).children())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly("Link email and password");
+                .containsExactly(LOGIN_TYPES_LABEL);
+        assertThat(navigationMenu.primaryItems().get(1).children().getFirst().active()).isTrue();
+        assertThat(navigationMenu.primaryItems().get(1).children().getFirst().children()).isEmpty();
+        assertThat(navigationMenu.breadcrumbs())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(DISPLAY_NAME, LOGIN_TYPES_LABEL);
     }
 
     @Test
@@ -64,7 +75,43 @@ class NavigationPageModelTest {
 
         assertThat(navigationMenu.primaryItems())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly("Home", DISPLAY_NAME);
-        assertThat(navigationMenu.hasSectionNavigation()).isFalse();
+                .containsExactly(HOME_LABEL, DISPLAY_NAME);
+        assertThat(navigationMenu.primaryItems().get(1).hasChildren()).isFalse();
+        assertThat(navigationMenu.primaryItems().get(1).active()).isTrue();
+        assertThat(navigationMenu.hasMenuItems()).isTrue();
+        assertThat(navigationMenu.breadcrumbs())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(DISPLAY_NAME);
+    }
+
+    @Test
+    void keepsHomeFirstWhenHomeIsActive() {
+        final CurrentUser currentUser = new CurrentUser(USER_ID, DISPLAY_NAME, null, false, EMAIL, true);
+
+        final NavigationMenuDto navigationMenu = navigationPageModel.navigationMenu(currentUser, "/");
+
+        assertThat(navigationMenu.primaryItems())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(HOME_LABEL, DISPLAY_NAME);
+        assertThat(navigationMenu.primaryItems().getFirst().label()).isEqualTo(HOME_LABEL);
+        assertThat(navigationMenu.primaryItems().getFirst().hasChildren()).isFalse();
+        assertThat(navigationMenu.primaryItems().getFirst().active()).isTrue();
+        assertThat(navigationMenu.hasMenuItems()).isTrue();
+        assertThat(navigationMenu.breadcrumbs())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(HOME_LABEL);
+    }
+
+    @Test
+    void buildsBreadcrumbsForNestedActivePage() {
+        final CurrentUser currentUser = new CurrentUser(USER_ID, DISPLAY_NAME, null, false, null, true);
+
+        final NavigationMenuDto navigationMenu =
+                navigationPageModel.navigationMenu(currentUser, "/profile/login-types/local/link");
+
+        assertThat(navigationMenu.hasBreadcrumbs()).isTrue();
+        assertThat(navigationMenu.breadcrumbs())
+                .extracting(NavigationMenuItemDto::label)
+                .containsExactly(DISPLAY_NAME, LOGIN_TYPES_LABEL, LINK_EMAIL_PASSWORD_LABEL);
     }
 }

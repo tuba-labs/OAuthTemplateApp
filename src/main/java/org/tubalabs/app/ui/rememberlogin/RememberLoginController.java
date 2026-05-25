@@ -23,7 +23,7 @@ import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 @RequiredArgsConstructor
 public class RememberLoginController {
 
-    private static final String REMEMBER_LOGIN_VIEW = "security/remember-login";
+    private static final String REMEMBER_LOGIN_VIEW = "ui/rememberlogin/remember-login";
     private static final String HOME_REDIRECT = "redirect:/";
 
     private final CurrentLoginIdentityResolver currentLoginIdentityResolver;
