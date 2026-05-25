@@ -25,8 +25,4 @@ public record NavigationMenuItemDto(
     public boolean hasChildren() {
         return !children.isEmpty();
     }
-
-    public NavigationMenuItemDto withoutChildren() {
-        return new NavigationMenuItemDto(label, tooltip, relativeUrl, List.of(), active);
-    }
 }

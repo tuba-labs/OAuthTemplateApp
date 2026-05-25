@@ -40,8 +40,6 @@ public abstract class AbstractNavigationController {
 
         final CurrentUser currentUser = currentUserSession.currentUser(request)
                 .orElseGet(() -> loadCurrentUser(request, authentication));
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentUserDisplayName", currentUser.navigationDisplayName());
         model.addAttribute("authenticatedNavigationMenu",
                 navigationPageModel.navigationMenu(currentUser, currentPath(request)));
     }
