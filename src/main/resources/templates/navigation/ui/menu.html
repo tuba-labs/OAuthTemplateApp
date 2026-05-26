@@ -1,4 +1,6 @@
-<div th:fragment="authenticatedMenu" class="app-navigation-shell app-navigation-shell-with-menu">
+<div th:fragment="authenticatedMenu"
+     class="app-navigation-shell app-navigation-shell-with-menu"
+     data-navigation-shell>
     <header class="app-menu-bar">
         <nav class="app-breadcrumbs"
              th:if="${authenticatedNavigationMenu.hasBreadcrumbs()}"
@@ -19,29 +21,55 @@
                 </li>
             </ol>
         </nav>
-        <button class="theme-toggle app-menu-theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Use light theme">
-            <span class="theme-toggle-track" aria-hidden="true">
-                <span class="theme-toggle-thumb"></span>
-            </span>
-        </button>
+        <div class="page-controls app-menu-controls">
+            <div th:replace="~{language/ui/language-selector :: selector}"></div>
+            <button class="theme-toggle app-menu-theme-toggle"
+                    type="button"
+                    data-theme-toggle
+                    aria-pressed="false"
+                    th:attr="aria-label=#{theme.use-light},data-theme-use-light-label=#{theme.use-light},data-theme-use-dark-label=#{theme.use-dark}">
+                <span class="theme-toggle-track" aria-hidden="true">
+                    <span class="theme-toggle-thumb"></span>
+                </span>
+            </button>
+        </div>
     </header>
     <aside class="app-section-nav"
            th:if="${authenticatedNavigationMenu.hasMenuItems()}"
-           aria-label="Navigation">
-        <form class="app-navigation-filter-form" role="search" data-navigation-filter-form>
-            <label class="visually-hidden" for="appNavigationFilter">Filter navigation</label>
-            <input id="appNavigationFilter"
-                   class="app-navigation-filter"
-                   type="search"
-                   placeholder="Filter navigation"
-                   autocomplete="off"
-                   aria-controls="appNavigationTree"
-                   data-navigation-filter>
-        </form>
-        <nav id="appNavigationTree" data-navigation-menu>
+           aria-label="Navigation"
+           data-section-navigation>
+        <div class="app-navigation-controls">
+            <button class="app-navigation-menu-toggle"
+                    type="button"
+                    aria-controls="appNavigationTree"
+                    aria-expanded="false"
+                    aria-pressed="false"
+                    data-navigation-menu-toggle
+                    th:attr="aria-label=#{navigation.menu.open},data-navigation-open-label=#{navigation.menu.open},data-navigation-close-label=#{navigation.menu.close}">
+                <span class="app-navigation-menu-toggle-lines" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+            </button>
+            <form class="app-navigation-filter-form" role="search" data-navigation-filter-form>
+                <label class="visually-hidden"
+                       for="appNavigationFilter"
+                       th:text="#{navigation.filter.label}"></label>
+                <input id="appNavigationFilter"
+                       class="app-navigation-filter"
+                       type="search"
+                       th:placeholder="#{navigation.filter.placeholder}"
+                       autocomplete="off"
+                       aria-controls="appNavigationTree"
+                       data-navigation-filter>
+            </form>
+        </div>
+        <nav id="appNavigationTree" class="app-navigation-tree" data-navigation-menu>
             <div th:replace="~{navigation/ui/menu :: navigationTree(${authenticatedNavigationMenu.primaryItems()})}"></div>
         </nav>
     </aside>
+    <script th:src="@{/js/language-selector.js}" defer></script>
     <script th:src="@{/js/navigation-filter.js}" defer></script>
 </div>
 

@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.navigation.ui.AbstractNavigationController;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
+import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPage;
+import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
 import org.tubalabs.app.users.current.CurrentUserSession;
@@ -37,11 +40,6 @@ import java.util.UUID;
 public class UserProfileLoginTypesController extends AbstractNavigationController {
 
     private static final String LOCAL_LOGIN_TYPE_FORM_ATTRIBUTE = "localLoginTypeForm";
-    private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
-    private static final String CURRENT_LOGIN_UNLINK_MESSAGE = "You cannot unlink the login type used for this session";
-    private static final String LAST_LOGIN_TYPE_UNLINK_MESSAGE = "At least one login type must remain linked";
-    private static final String UNKNOWN_CURRENT_LOGIN_UNLINK_MESSAGE = "Log in again before unlinking login types";
-    private static final String UNLINKED_LOGIN_TYPE_MESSAGE = "Login type is not linked";
     private static final String PROVIDER_LINK_URL = ProfileLoginTypesPage.RELATIVE_URL + "/{providerId}/link";
     private static final String PROVIDER_UNLINK_URL = ProfileLoginTypesPage.RELATIVE_URL + "/{providerId}/unlink";
 
@@ -52,6 +50,7 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
     private final UserLoginTypeService userLoginTypeService;
     private final ExternalIdentityLinkSession externalIdentityLinkSession;
     private final ProfileLoginTypesPageModel profileLoginTypesPageModel;
+    private final LocalizationService localizationService;
     private final CurrentUserSession currentUserSession;
 
     public UserProfileLoginTypesController(@NonNull CurrentUserIdResolver currentUserIdResolver,
@@ -63,7 +62,8 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                                            @NonNull ProfileSetupSession profileSetupSession,
                                            @NonNull UserLoginTypeService userLoginTypeService,
                                            @NonNull ExternalIdentityLinkSession externalIdentityLinkSession,
-                                           @NonNull ProfileLoginTypesPageModel profileLoginTypesPageModel) {
+                                           @NonNull ProfileLoginTypesPageModel profileLoginTypesPageModel,
+                                           @NonNull LocalizationService localizationService) {
         super(currentUserIdResolver, currentUserSession, profileSetupRequirementService, navigationPageModel);
         this.currentUserIdResolver = currentUserIdResolver;
         this.currentLoginProviderResolver = currentLoginProviderResolver;
@@ -72,6 +72,7 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
         this.userLoginTypeService = userLoginTypeService;
         this.externalIdentityLinkSession = externalIdentityLinkSession;
         this.profileLoginTypesPageModel = profileLoginTypesPageModel;
+        this.localizationService = localizationService;
         this.currentUserSession = currentUserSession;
     }
 
@@ -79,8 +80,6 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
     public String loginTypes(@NonNull Authentication authentication,
                              @NonNull Model model,
                              @NonNull HttpServletRequest request) {
-        requireCompleteProfile(request, "A complete profile is required to manage login types");
-
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         final CurrentUser currentUser = currentUser(userId, request);
         profileLoginTypesPageModel.addLoginTypeAttributes(
@@ -92,11 +91,14 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
     public String localLoginType(@NonNull Authentication authentication,
                                  @NonNull Model model,
                                  @NonNull HttpServletRequest request) {
-        requireCompleteProfile(request, "A complete profile is required to link login types");
+        requireCompleteProfile(
+                request,
+                localizationService.message("profile.login-types.access.link-requires-complete-profile"));
 
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         if (!userLoginTypeService.canLinkLocalLoginType(userId)) {
-            throw new AccessDeniedException("Email and password login is not available to link");
+            throw new AccessDeniedException(
+                    localizationService.message("profile.login-types.access.local-login-unavailable"));
         }
 
         if (!model.containsAttribute(LOCAL_LOGIN_TYPE_FORM_ATTRIBUTE)) {
@@ -109,11 +111,14 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
     public String linkLoginType(@NonNull Authentication authentication,
                                 @PathVariable @NonNull String providerId,
                                 @NonNull HttpServletRequest request) {
-        requireCompleteProfile(request, "A complete profile is required to link login types");
+        requireCompleteProfile(
+                request,
+                localizationService.message("profile.login-types.access.link-requires-complete-profile"));
 
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         if (!userLoginTypeService.canLinkExternalLoginType(userId, providerId)) {
-            throw new AccessDeniedException("Login type is not available to link");
+            throw new AccessDeniedException(
+                    localizationService.message("profile.login-types.access.external-login-unavailable"));
         }
 
         externalIdentityLinkSession.start(request, userId, providerId, authentication);
@@ -127,15 +132,21 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                                      @NonNull Model model,
                                      @NonNull RedirectAttributes redirectAttributes,
                                      @NonNull HttpServletRequest request) {
-        requireCompleteProfile(request, "A complete profile is required to link login types");
+        requireCompleteProfile(
+                request,
+                localizationService.message("profile.login-types.access.link-requires-complete-profile"));
 
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         if (!userLoginTypeService.canLinkLocalLoginType(userId)) {
-            throw new AccessDeniedException("Email and password login is not available to link");
+            throw new AccessDeniedException(
+                    localizationService.message("profile.login-types.access.local-login-unavailable"));
         }
 
         if (!Objects.equals(localLoginTypeForm.password(), localLoginTypeForm.passwordConfirmation())) {
-            bindingResult.rejectValue("passwordConfirmation", "passwordMismatch", PASSWORD_MISMATCH_MESSAGE);
+            bindingResult.rejectValue(
+                    "passwordConfirmation",
+                    "passwordMismatch",
+                    localizationService.message("profile.login-types.error.password-mismatch"));
         }
         if (bindingResult.hasErrors()) {
             return localLoginTypeViewWithErrors(model, localLoginTypeForm);
@@ -146,7 +157,10 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                     userId,
                     new LocalUserRegistration(localLoginTypeForm.email(), localLoginTypeForm.password()));
         } catch (LocalUserAlreadyExistsException exception) {
-            bindingResult.rejectValue("email", "localLoginExists", "That email is already linked to another account");
+            bindingResult.rejectValue(
+                    "email",
+                    "localLoginExists",
+                    localizationService.message("profile.login-types.error.local-email-used"));
             return localLoginTypeViewWithErrors(model, localLoginTypeForm);
         } catch (IllegalArgumentException exception) {
             bindingResult.reject("localLoginRejected", exception.getMessage());
@@ -156,7 +170,7 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
         currentUserSession.refresh(request, userId, false);
         redirectAttributes.addFlashAttribute(
                 ProfileLoginTypesPageModel.LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE,
-                "Email and password linked.");
+                localizationService.message("profile.login-types.message.local-linked"));
         return ProfileLoginTypesPage.REDIRECT;
     }
 
@@ -165,19 +179,24 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                                   @PathVariable @NonNull String providerId,
                                   @NonNull HttpServletRequest request,
                                   @NonNull RedirectAttributes redirectAttributes) {
-        requireCompleteProfile(request, "A complete profile is required to unlink login types");
+        requireCompleteProfile(
+                request,
+                localizationService.message("profile.login-types.access.unlink-requires-complete-profile"));
 
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         try {
-            userLoginTypeService.unlinkLoginType(userId, providerId, currentLoginProviderResolver.providerId(authentication, request));
+            userLoginTypeService.unlinkLoginType(
+                    userId,
+                    providerId,
+                    currentLoginProviderResolver.providerId(authentication, request));
             currentUserSession.refresh(request, userId, false);
             redirectAttributes.addFlashAttribute(
                     ProfileLoginTypesPageModel.LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE,
-                    "Login type unlinked.");
+                    localizationService.message("profile.login-types.message.unlinked"));
         } catch (LoginTypeUnlinkException exception) {
             redirectAttributes.addFlashAttribute(
                     ProfileLoginTypesPageModel.LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE,
-                    unlinkFailureMessage(exception));
+                    localizationService.message(exception.reason()));
         }
         return ProfileLoginTypesPage.REDIRECT;
     }
@@ -186,15 +205,6 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                                                 @NonNull UserLocalLoginTypeLinkDto localLoginTypeForm) {
         model.addAttribute(LOCAL_LOGIN_TYPE_FORM_ATTRIBUTE, localLoginTypeForm);
         return ProfileLocalLoginTypePage.VIEW;
-    }
-
-    private String unlinkFailureMessage(@NonNull LoginTypeUnlinkException exception) {
-        return switch (exception.reason()) {
-            case CURRENT_LOGIN -> CURRENT_LOGIN_UNLINK_MESSAGE;
-            case LAST_LOGIN_TYPE -> LAST_LOGIN_TYPE_UNLINK_MESSAGE;
-            case UNKNOWN_CURRENT_LOGIN -> UNKNOWN_CURRENT_LOGIN_UNLINK_MESSAGE;
-            case NOT_LINKED -> UNLINKED_LOGIN_TYPE_MESSAGE;
-        };
     }
 
     private void requireCompleteProfile(@NonNull HttpServletRequest request, @NonNull String message) {

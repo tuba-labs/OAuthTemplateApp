@@ -14,10 +14,12 @@
         function updateToggle() {
             var lightThemeActive = document.documentElement.dataset.theme === "light";
             toggles.forEach(function (toggle) {
+                var useLightLabel = toggle.dataset.themeUseLightLabel || "Use light theme";
+                var useDarkLabel = toggle.dataset.themeUseDarkLabel || "Use dark theme";
                 var label = toggle.querySelector("[data-theme-toggle-label]");
                 toggle.setAttribute("aria-pressed", String(lightThemeActive));
-                toggle.setAttribute("aria-label", lightThemeActive ? "Use dark theme" : "Use light theme");
-                toggle.setAttribute("title", lightThemeActive ? "Use dark theme" : "Use light theme");
+                toggle.setAttribute("aria-label", lightThemeActive ? useDarkLabel : useLightLabel);
+                toggle.setAttribute("title", lightThemeActive ? useDarkLabel : useLightLabel);
                 toggle.dataset.themeToggleState = lightThemeActive ? "light" : "dark";
                 if (label) {
                     label.textContent = lightThemeActive ? "Light" : "Dark";

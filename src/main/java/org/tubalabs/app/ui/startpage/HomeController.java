@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.tubalabs.app.navigation.ui.AbstractNavigationController;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
+import org.tubalabs.app.ui.startpage.menusystem.HomePage;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;

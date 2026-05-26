@@ -58,4 +58,18 @@ public class UserSettingsRepository {
                 .param("user_id", userId)
                 .update();
     }
+
+    public void upsertLanguageTag(@NonNull UUID userId, @NonNull String languageTag) {
+        jdbcClient.sql("""
+                        INSERT INTO user_settings (user_id, language_tag)
+                        VALUES (:user_id, :language_tag)
+                        ON CONFLICT (user_id) DO UPDATE
+                        SET
+                        language_tag = EXCLUDED.language_tag,
+                        modified = CURRENT_TIMESTAMP
+                """)
+                .param("user_id", userId)
+                .param("language_tag", languageTag)
+                .update();
+    }
 }

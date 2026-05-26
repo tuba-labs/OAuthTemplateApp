@@ -1,0 +1,22 @@
+<form th:fragment="selector"
+      class="language-selector-form"
+      method="post"
+      th:action="@{/language}"
+      th:attr="data-language-persistence=${languageSelectorPersistence}"
+      data-language-selector-form>
+    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    <input type="hidden" name="returnTo" value="/" data-language-return-to>
+    <label class="language-selector-label">
+        <span class="visually-hidden" th:text="#{language.selector.label}"></span>
+        <select class="language-selector"
+                name="languageTag"
+                th:attr="aria-label=#{language.selector.label}"
+                data-language-selector>
+            <option th:each="option : ${languageSelectorOptions}"
+                    th:value="${option.languageTag}"
+                    th:selected="${option.languageTag == languageSelectorCurrentTag}"
+                    th:title="${option.label}"
+                    th:text="${option.flag}"></option>
+        </select>
+    </label>
+</form>

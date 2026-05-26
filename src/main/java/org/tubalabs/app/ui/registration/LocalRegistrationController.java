@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.password.CreateResult;
 import org.tubalabs.app.users.identity.password.LocalUserService;
@@ -26,7 +27,6 @@ import java.util.Objects;
 public class LocalRegistrationController {
 
     private static final String REGISTRATION_ERROR_ATTRIBUTE = "registrationError";
-    private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
     private static final String REGISTER_VIEW = "ui/registration/register";
     private static final String REGISTER_REDIRECT = "redirect:/register";
     private static final String PROFILE_REDIRECT = "redirect:/profile";
@@ -35,6 +35,7 @@ public class LocalRegistrationController {
     private final LocalSessionAuthentication localSessionAuthentication;
     private final ProfileSetupSession profileSetupSession;
     private final CurrentUserSession currentUserSession;
+    private final LocalizationService localizationService;
 
     @GetMapping("/register")
     public String registerForm() {
@@ -53,7 +54,9 @@ public class LocalRegistrationController {
             return REGISTER_REDIRECT;
         }
         if (!Objects.equals(form.password(), form.passwordConfirmation())) {
-            addRegistrationError(redirectAttributes, PASSWORD_MISMATCH_MESSAGE);
+            addRegistrationError(
+                    redirectAttributes,
+                    localizationService.message("registration.error.password-mismatch"));
             return REGISTER_REDIRECT;
         }
 

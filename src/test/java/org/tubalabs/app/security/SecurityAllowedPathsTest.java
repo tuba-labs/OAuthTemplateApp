@@ -23,6 +23,7 @@ class SecurityAllowedPathsTest {
         assertThat(SecurityAllowedPaths.isProfileSetupAllowedPath("/profile/edit")).isTrue();
         assertThat(SecurityAllowedPaths.isProfileSetupAllowedPath("/profile-pictures/user.jpg")).isTrue();
         assertThat(SecurityAllowedPaths.isProfileSetupAllowedPath("/logout")).isTrue();
+        assertThat(SecurityAllowedPaths.isProfileSetupAllowedPath("/language")).isTrue();
     }
 
     @Test

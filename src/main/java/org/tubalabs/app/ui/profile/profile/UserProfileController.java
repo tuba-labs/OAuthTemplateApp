@@ -13,8 +13,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.navigation.ui.AbstractNavigationController;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
+import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePage;
+import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
 import org.tubalabs.app.users.current.CurrentUserSession;
@@ -24,10 +27,12 @@ import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
-import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageFailure;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
+import org.tubalabs.app.users.settings.UserLanguage;
+import org.tubalabs.app.users.settings.UserSettingsService;
 import org.tubalabs.app.ui.profile.profile.dtos.UserProfileUpdateDto;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Controller
@@ -36,18 +41,14 @@ public class UserProfileController extends AbstractNavigationController {
     private static final String PROFILE_FORM_ATTRIBUTE = "profileForm";
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
     private static final String REMEMBER_LOGIN_REDIRECT = "redirect:/remember-login";
-    private static final String EMPTY_PROFILE_PICTURE_MESSAGE = "Choose a profile picture to upload";
-    private static final String PROFILE_PICTURE_TOO_LARGE_MESSAGE = "Profile picture is too large";
-    private static final String INVALID_PROFILE_PICTURE_MESSAGE = "Profile picture must be a PNG, JPEG, or GIF image";
-    private static final String PROFILE_PICTURE_DIMENSIONS_TOO_LARGE_MESSAGE =
-            "Profile picture dimensions are too large";
-    private static final String PROFILE_PICTURE_UPLOAD_FAILED_MESSAGE = "Could not upload profile picture";
 
     private final CurrentUserIdResolver currentUserIdResolver;
     private final UserProfileService userProfileService;
     private final ProfileSetupSession profileSetupSession;
     private final ProfilePictureStorageService profilePictureStorageService;
     private final ProfilePageModel profilePageModel;
+    private final LocalizationService localizationService;
+    private final UserSettingsService userSettingsService;
     private final CurrentUserSession currentUserSession;
 
     public UserProfileController(@NonNull CurrentUserIdResolver currentUserIdResolver,
@@ -57,13 +58,17 @@ public class UserProfileController extends AbstractNavigationController {
                                  @NonNull UserProfileService userProfileService,
                                  @NonNull ProfileSetupSession profileSetupSession,
                                  @NonNull ProfilePictureStorageService profilePictureStorageService,
-                                 @NonNull ProfilePageModel profilePageModel) {
+                                 @NonNull ProfilePageModel profilePageModel,
+                                 @NonNull LocalizationService localizationService,
+                                 @NonNull UserSettingsService userSettingsService) {
         super(currentUserIdResolver, currentUserSession, profileSetupRequirementService, navigationPageModel);
         this.currentUserIdResolver = currentUserIdResolver;
         this.userProfileService = userProfileService;
         this.profileSetupSession = profileSetupSession;
         this.profilePictureStorageService = profilePictureStorageService;
         this.profilePageModel = profilePageModel;
+        this.localizationService = localizationService;
+        this.userSettingsService = userSettingsService;
         this.currentUserSession = currentUserSession;
     }
 
@@ -74,7 +79,7 @@ public class UserProfileController extends AbstractNavigationController {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         final UserProfileDbo profile = userProfileService.getProfile(userId);
         final CurrentUser currentUser = currentUser(userId, request);
-        addProfileFormIfMissing(model, profile);
+        addProfileFormIfMissing(model, profile, currentUser);
         profilePageModel.addProfileAttributes(model, currentUser, profile);
         return ProfilePage.VIEW;
     }
@@ -89,6 +94,13 @@ public class UserProfileController extends AbstractNavigationController {
                                 @RequestParam(value = "pictureFile", required = false) MultipartFile pictureFile) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         final UserProfileDbo currentProfile = userProfileService.getProfile(userId);
+        final Optional<UserLanguage> selectedLanguage = UserLanguage.fromTag(profileForm.languageTag());
+        if (selectedLanguage.isEmpty()) {
+            bindingResult.rejectValue(
+                    "languageTag",
+                    "unsupportedLanguage",
+                    localizationService.message("profile.language.error.unsupported"));
+        }
 
         if (bindingResult.hasErrors()) {
             profilePageModel.addProfileAttributes(model, currentUser(userId, request), currentProfile);
@@ -99,12 +111,16 @@ public class UserProfileController extends AbstractNavigationController {
         try {
             update = updateWithPicture(userId, profileForm, currentProfile, pictureFile);
         } catch (ProfilePictureStorageException exception) {
-            bindingResult.rejectValue("pictureUrl", "profilePictureUpload", profilePictureFailureMessage(exception));
+            bindingResult.rejectValue(
+                    "pictureUrl",
+                    "profilePictureUpload",
+                    localizationService.message(exception.reason()));
             profilePageModel.addProfileAttributes(model, currentUser(userId, request), currentProfile);
             return ProfilePage.VIEW;
         }
 
         userProfileService.updateProfile(userId, profileUpdate(update));
+        userSettingsService.updateLanguage(userId, selectedLanguage.orElseThrow());
         if (profileSetupSession.isProfileSetupRequired(request)) {
             profileSetupSession.completeProfileSetup(request);
             currentUserSession.refresh(request, userId, false);
@@ -121,14 +137,16 @@ public class UserProfileController extends AbstractNavigationController {
                         request, userId, profileSetupSession.isProfileSetupRequired(request)));
     }
 
-    private void addProfileFormIfMissing(@NonNull Model model, @NonNull UserProfileDbo profile) {
+    private void addProfileFormIfMissing(@NonNull Model model,
+                                         @NonNull UserProfileDbo profile,
+                                         @NonNull CurrentUser currentUser) {
         if (!model.containsAttribute(PROFILE_FORM_ATTRIBUTE)) {
-            model.addAttribute(PROFILE_FORM_ATTRIBUTE, profileForm(profile));
+            model.addAttribute(PROFILE_FORM_ATTRIBUTE, profileForm(profile, currentUser));
         }
     }
 
-    private UserProfileUpdateDto profileForm(@NonNull UserProfileDbo profile) {
-        return new UserProfileUpdateDto(profile.displayName(), profile.pictureUrl());
+    private UserProfileUpdateDto profileForm(@NonNull UserProfileDbo profile, @NonNull CurrentUser currentUser) {
+        return new UserProfileUpdateDto(profile.displayName(), profile.pictureUrl(), currentUser.languageTag());
     }
 
     private UserProfileUpdateDto updateWithPicture(@NonNull UUID userId,
@@ -136,24 +154,16 @@ public class UserProfileController extends AbstractNavigationController {
                                                    @NonNull UserProfileDbo currentProfile,
                                                    MultipartFile pictureFile) {
         if (pictureFile == null || pictureFile.isEmpty()) {
-            return new UserProfileUpdateDto(profileForm.displayName(), currentProfile.pictureUrl());
+            return new UserProfileUpdateDto(
+                    profileForm.displayName(),
+                    currentProfile.pictureUrl(),
+                    profileForm.languageTag());
         }
         final String uploadedPictureUrl = profilePictureStorageService.store(userId, pictureFile);
-        return new UserProfileUpdateDto(profileForm.displayName(), uploadedPictureUrl);
+        return new UserProfileUpdateDto(profileForm.displayName(), uploadedPictureUrl, profileForm.languageTag());
     }
 
     private UserProfileUpdate profileUpdate(@NonNull UserProfileUpdateDto profileForm) {
         return new UserProfileUpdate(profileForm.displayName(), profileForm.pictureUrl());
-    }
-
-    private String profilePictureFailureMessage(@NonNull ProfilePictureStorageException exception) {
-        final ProfilePictureStorageFailure reason = exception.reason();
-        return switch (reason) {
-            case EMPTY_FILE -> EMPTY_PROFILE_PICTURE_MESSAGE;
-            case FILE_TOO_LARGE -> PROFILE_PICTURE_TOO_LARGE_MESSAGE;
-            case INVALID_IMAGE -> INVALID_PROFILE_PICTURE_MESSAGE;
-            case DIMENSIONS_TOO_LARGE -> PROFILE_PICTURE_DIMENSIONS_TOO_LARGE_MESSAGE;
-            case INVALID_PATH, READ_FAILED, STORE_FAILED -> PROFILE_PICTURE_UPLOAD_FAILED_MESSAGE;
-        };
     }
 }

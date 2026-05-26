@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.tubalabs.app.users.settings.UserLanguageLocaleResolver;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,7 @@ public class CurrentUserSession {
         }
         final Object value = session.getAttribute(CURRENT_USER_ATTRIBUTE);
         if (value instanceof CurrentUser currentUser) {
+            applyLocale(request, currentUser);
             return Optional.of(currentUser);
         }
         return Optional.empty();
@@ -34,10 +36,15 @@ public class CurrentUserSession {
                                boolean profileSetupRequired) {
         final CurrentUser currentUser = currentUserLoader.load(userId, profileSetupRequired);
         setCurrentUser(request, currentUser);
+        applyLocale(request, currentUser);
         return currentUser;
     }
 
     private void setCurrentUser(@NonNull HttpServletRequest request, @NonNull CurrentUser currentUser) {
         request.getSession().setAttribute(CURRENT_USER_ATTRIBUTE, currentUser);
+    }
+
+    private void applyLocale(@NonNull HttpServletRequest request, @NonNull CurrentUser currentUser) {
+        UserLanguageLocaleResolver.setRequestLocale(request, currentUser.locale());
     }
 }

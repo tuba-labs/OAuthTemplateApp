@@ -8,12 +8,8 @@ public sealed interface NavigablePage permits MainPage, SubPage {
 
     List<SubPage> subPages();
 
-    default String label() {
-        return model().label();
-    }
-
-    default String tooltip() {
-        return model().tooltip();
+    default PageText text() {
+        return model().text();
     }
 
     default String relativeUrl() {

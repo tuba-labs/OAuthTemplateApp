@@ -1,18 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" th:lang="${#locale.toLanguageTag()}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>OAuth Template App</title>
+    <title th:text="#{home.title}"></title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/navigation-state.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-page">
 <div th:replace="~{navigation/ui/menu :: authenticatedMenu}"></div>
 <main class="app-content">
 <section class="panel">
-    <h1 class="page-title">Nothing here yet</h1>
-    <p class="page-subtitle">You're signed in.</p>
+    <h1 class="page-title" th:text="#{home.heading}"></h1>
+    <p class="page-subtitle" th:text="#{home.subtitle}"></p>
 </section>
 </main>
 </body>

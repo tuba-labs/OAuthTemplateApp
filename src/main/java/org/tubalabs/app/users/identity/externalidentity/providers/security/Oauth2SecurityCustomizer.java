@@ -32,8 +32,8 @@ import org.tubalabs.app.users.identity.externalidentity.IdentityLinkFailure;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProvider;
 import org.tubalabs.app.users.identity.externalidentity.providers.ExternalIdentityProviders;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
-import org.tubalabs.app.ui.profile.logintypes.ProfileLoginTypesPage;
-import org.tubalabs.app.ui.profile.profile.ProfilePage;
+import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPage;
+import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePage;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 
 import java.util.Objects;

@@ -2,15 +2,13 @@ package org.tubalabs.app.navigation.ui;
 
 import lombok.NonNull;
 import org.springframework.stereotype.Component;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.navigation.NavigationCatalog;
 import org.tubalabs.app.navigation.NavigablePage;
 import org.tubalabs.app.navigation.SubPage;
 import org.tubalabs.app.navigation.ui.dtos.NavigationMenuDto;
 import org.tubalabs.app.navigation.ui.dtos.NavigationMenuItemDto;
 import org.tubalabs.app.users.current.CurrentUser;
-import org.tubalabs.app.ui.profile.logintypes.local.ProfileLocalLoginTypePage;
-import org.tubalabs.app.ui.profile.profile.ProfilePage;
-import org.tubalabs.app.ui.profile.changepassword.ProfileChangePasswordPage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,9 +18,12 @@ import java.util.Optional;
 public class NavigationPageModel {
 
     private final NavigationCatalog navigationCatalog;
+    private final LocalizationService localizationService;
 
-    public NavigationPageModel(@NonNull NavigationCatalog navigationCatalog) {
+    public NavigationPageModel(@NonNull NavigationCatalog navigationCatalog,
+                               @NonNull LocalizationService localizationService) {
         this.navigationCatalog = navigationCatalog;
+        this.localizationService = localizationService;
     }
 
     public NavigationMenuDto navigationMenu(@NonNull CurrentUser currentUser, @NonNull String currentPath) {
@@ -44,18 +45,15 @@ public class NavigationPageModel {
                 .map(subPage -> menuItem(subPage, currentUser, activePage))
                 .toList();
         return new NavigationMenuItemDto(
-                label(page, currentUser),
-                page.tooltip(),
+                label(page),
+                localizationService.message(page.text().tooltipLocalizationKey()),
                 page.relativeUrl(),
                 children,
                 active(page, activePage));
     }
 
-    private String label(@NonNull NavigablePage page, @NonNull CurrentUser currentUser) {
-        if (page == ProfilePage.PAGE) {
-            return currentUser.navigationDisplayName();
-        }
-        return page.label();
+    private String label(@NonNull NavigablePage page) {
+        return localizationService.message(page.text().labelLocalizationKey());
     }
 
     private boolean visibleInNavigation(@NonNull NavigablePage page, @NonNull CurrentUser currentUser) {
@@ -63,16 +61,7 @@ public class NavigationPageModel {
     }
 
     private boolean available(@NonNull NavigablePage page, @NonNull CurrentUser currentUser) {
-        if (page instanceof SubPage && currentUser.profileSetupRequired()) {
-            return false;
-        }
-        if (page == ProfileChangePasswordPage.PAGE) {
-            return currentUser.passwordChangeAvailable();
-        }
-        if (page == ProfileLocalLoginTypePage.PAGE) {
-            return currentUser.localLoginLinkAvailable();
-        }
-        return true;
+        return page.model().availability().available(currentUser);
     }
 
     private boolean active(@NonNull NavigablePage page, @NonNull Optional<NavigablePage> activePage) {
@@ -120,8 +109,8 @@ public class NavigationPageModel {
                                                          @NonNull CurrentUser currentUser,
                                                          @NonNull Optional<NavigablePage> activePage) {
         return new NavigationMenuItemDto(
-                label(page, currentUser),
-                page.tooltip(),
+                label(page),
+                localizationService.message(page.text().tooltipLocalizationKey()),
                 page.relativeUrl(),
                 List.of(),
                 active(page, activePage));

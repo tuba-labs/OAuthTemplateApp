@@ -8,11 +8,11 @@ import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME
 import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH_MESSAGE;
 
 public record UserProfileUpdate(
-        @NotBlank(message = "Display name is required")
+        @NotBlank(message = "{validation.profile.display-name.required}")
         @ValidDisplayName
         @Size(max = DISPLAY_NAME_MAX_LENGTH, message = DISPLAY_NAME_MAX_LENGTH_MESSAGE)
         String displayName,
-        @Size(max = 2000, message = "Picture URL must be 2000 characters or fewer")
+        @Size(max = 2000, message = "{validation.profile.picture-url.max-length}")
         String pictureUrl) {
 
     public UserProfileUpdate {

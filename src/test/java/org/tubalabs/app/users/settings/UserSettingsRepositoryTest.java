@@ -25,6 +25,7 @@ class UserSettingsRepositoryTest extends AbstractJdbcTestBaseTestClass {
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final Instant REMEMBER_LOGIN_PROMPT_AFTER = Instant.parse("2026-06-22T12:00:00Z");
     private static final Instant UPDATED_REMEMBER_LOGIN_PROMPT_AFTER = Instant.parse("2026-07-22T12:00:00Z");
+    private static final String NORWEGIAN_LANGUAGE_TAG = "nb";
 
     @Autowired
     private UserRepository userRepository;
@@ -60,6 +61,19 @@ class UserSettingsRepositoryTest extends AbstractJdbcTestBaseTestClass {
         userSettingsRepository.clearRememberLoginPromptAfter(USER_ID);
 
         final UserSettingsDbo expectedSettings = new UserSettingsDbo(USER_ID, null);
+        assertThat(userSettingsRepository.findByUserId(USER_ID)).contains(expectedSettings);
+    }
+
+    @Test
+    void upsertsLanguageTag() {
+        userRepository.insert(new UserDbo(USER_ID));
+        final Timestamp rememberLoginPromptAfter = Timestamp.from(REMEMBER_LOGIN_PROMPT_AFTER);
+        userSettingsRepository.upsertRememberLoginPromptAfter(USER_ID, rememberLoginPromptAfter);
+
+        userSettingsRepository.upsertLanguageTag(USER_ID, NORWEGIAN_LANGUAGE_TAG);
+
+        final UserSettingsDbo expectedSettings =
+                new UserSettingsDbo(USER_ID, rememberLoginPromptAfter, NORWEGIAN_LANGUAGE_TAG);
         assertThat(userSettingsRepository.findByUserId(USER_ID)).contains(expectedSettings);
     }
 }

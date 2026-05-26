@@ -9,6 +9,8 @@
         var submitButton = document.querySelector("[data-confirm-dialog-submit]");
         var forms = document.querySelectorAll("form[data-confirm-title]");
         var pendingForm = null;
+        var defaultTitle = title ? title.textContent : "";
+        var defaultAction = submitButton ? submitButton.textContent : "";
 
         if (!dialog || !title || !submitButton || typeof dialog.showModal !== "function") {
             return;
@@ -23,8 +25,8 @@
 
                 event.preventDefault();
                 pendingForm = form;
-                title.textContent = form.dataset.confirmTitle || "Confirm action";
-                submitButton.textContent = form.dataset.confirmAction || "Confirm";
+                title.textContent = form.dataset.confirmTitle || defaultTitle;
+                submitButton.textContent = form.dataset.confirmAction || defaultAction;
 
                 dialog.showModal();
             });

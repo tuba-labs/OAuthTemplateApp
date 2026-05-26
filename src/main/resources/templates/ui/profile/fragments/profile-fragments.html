@@ -1,13 +1,18 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
 <body>
 <dialog class="confirmation-dialog" data-confirm-dialog th:fragment="confirmationDialog">
-    <h2 class="section-title" data-confirm-dialog-title>Confirm action</h2>
+    <h2 class="section-title"
+        data-confirm-dialog-title
+        th:text="#{ui.confirm.title}"></h2>
     <div class="confirmation-actions">
         <form class="confirmation-cancel-form" method="dialog">
-            <button class="button button-secondary" type="submit">Cancel</button>
+            <button class="button button-secondary" type="submit" th:text="#{ui.confirm.cancel}"></button>
         </form>
-        <button class="button button-danger" type="button" data-confirm-dialog-submit>Confirm</button>
+        <button class="button button-danger"
+                type="button"
+                data-confirm-dialog-submit
+                th:text="#{ui.confirm.action}"></button>
     </div>
 </dialog>
 </body>

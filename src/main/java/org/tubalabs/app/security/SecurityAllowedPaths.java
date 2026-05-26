@@ -13,6 +13,7 @@ public final class SecurityAllowedPaths {
     public static final String ERROR_PATH = "/error";
     public static final String PROFILE_PATH = "/profile";
     public static final String LOGOUT_PATH = "/logout";
+    public static final String LANGUAGE_PATH = "/language";
     public static final String LOCAL_USERS_API_PATH = "/api/local-users";
     public static final String LOCAL_LOGIN_API_PATH = "/api/local-login";
 
@@ -40,6 +41,7 @@ public final class SecurityAllowedPaths {
             PROFILE_PATH,
             PROFILE_PATH + "/**",
             LOGOUT_PATH,
+            LANGUAGE_PATH,
             "/actuator/**",
             "/profile-pictures/**");
 

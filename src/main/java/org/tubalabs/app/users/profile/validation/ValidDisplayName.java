@@ -15,7 +15,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidDisplayName {
 
-    String message() default "Display name must contain at least 3 letters or numbers";
+    String message() default "{validation.profile.display-name.valid}";
 
     Class<?>[] groups() default {};
 

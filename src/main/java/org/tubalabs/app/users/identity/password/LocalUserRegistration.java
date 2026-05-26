@@ -8,12 +8,12 @@ import org.tubalabs.app.users.identity.password.validation.SafePassword;
 
 public record LocalUserRegistration(
         @NonNull
-        @NotBlank(message = "Email is required")
-        @Email(message = "Email must be valid")
-        @Size(max = 320, message = "Email must be 320 characters or fewer")
+        @NotBlank(message = "{validation.email.required}")
+        @Email(message = "{validation.email.valid}")
+        @Size(max = 320, message = "{validation.email.max-length}")
         String email,
         @NonNull
-        @NotBlank(message = "Password is required")
+        @NotBlank(message = "{validation.password.required}")
         @SafePassword
         String password) {
 }

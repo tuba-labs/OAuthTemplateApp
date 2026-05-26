@@ -1,8 +1,12 @@
 package org.tubalabs.app.ui.profile;
 
+import lombok.NonNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.context.support.StaticMessageSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,6 +20,7 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
@@ -38,18 +43,21 @@ import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 import org.tubalabs.app.users.profile.UserProfileUpdate;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
-import org.tubalabs.app.ui.profile.changepassword.dtos.UserPasswordChangeDto;
+import org.tubalabs.app.users.settings.UserLanguage;
+import org.tubalabs.app.users.settings.UserSettingsService;
+import org.tubalabs.app.ui.profile.changepassword.UserProfilePasswordController;
 import org.tubalabs.app.ui.profile.logintypes.dtos.ProfileLinkedLoginTypeOptionDto;
 import org.tubalabs.app.ui.profile.logintypes.dtos.ProfileLoginTypeOptionDto;
 import org.tubalabs.app.ui.profile.logintypes.dtos.UserLocalLoginTypeLinkDto;
-import org.tubalabs.app.ui.profile.changepassword.UserProfilePasswordController;
-import org.tubalabs.app.ui.profile.logintypes.ProfileLoginTypesPageModel;
+import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPageModel;
 import org.tubalabs.app.ui.profile.logintypes.UserProfileLoginTypesController;
-import org.tubalabs.app.ui.profile.profile.ProfilePageModel;
+import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePageModel;
 import org.tubalabs.app.ui.profile.profile.UserProfileController;
+import org.tubalabs.app.ui.profile.changepassword.dtos.UserPasswordChangeDto;
 import org.tubalabs.app.ui.profile.profile.dtos.UserProfileUpdateDto;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -71,6 +79,7 @@ class UserProfileControllerTest {
     private static final String PASSWORD_FORM_ATTRIBUTE = "passwordForm";
     private static final String LOCAL_PROFILE_ATTRIBUTE = "localProfile";
     private static final String LOCAL_LOGIN_NAME_ATTRIBUTE = "localLoginName";
+    private static final String LANGUAGE_OPTIONS_ATTRIBUTE = "languageOptions";
     private static final String LOGIN_TYPE_OPTIONS_ATTRIBUTE = "loginTypeOptions";
     private static final String LINKED_LOGIN_TYPE_OPTIONS_ATTRIBUTE = "linkedLoginTypeOptions";
     private static final String LOCAL_LOGIN_TYPE_AVAILABLE_ATTRIBUTE = "localLoginTypeAvailable";
@@ -82,12 +91,28 @@ class UserProfileControllerTest {
     private static final String LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE = "loginTypeErrorMessage";
     private static final String GOOGLE_PROVIDER_ID = "google";
     private static final String GOOGLE_LABEL = "Google";
+    private static final String LOCAL_LOGIN_TYPE_LABEL = "Email and password";
+    private static final String NORWEGIAN_LOCAL_LOGIN_TYPE_LABEL = "E-post og passord";
+    private static final String LOGIN_TYPE_LINKED_MESSAGE = "Login type linked.";
+    private static final String LOCAL_LOGIN_TYPE_LINKED_MESSAGE = "Email and password linked.";
+    private static final String LOGIN_TYPE_UNLINKED_MESSAGE = "Login type unlinked.";
+    private static final String PROVIDER_ALREADY_LINKED_MESSAGE = "This account already has that login type linked";
+    private static final String PASSWORD_MISMATCH_MESSAGE = "Passwords do not match";
+    private static final String INVALID_PROFILE_PICTURE_MESSAGE = "Profile picture must be a PNG, JPEG, or GIF image";
+    private static final String UNLINKED_LOGIN_TYPE_MESSAGE = "Login type is not linked";
+    private static final Locale TEST_LOCALE = Locale.ENGLISH;
     private static final ProfileLoginTypeOptionDto GOOGLE_LOGIN_TYPE_OPTION =
             new ProfileLoginTypeOptionDto(GOOGLE_PROVIDER_ID, GOOGLE_LABEL);
     private static final LinkedLoginType GOOGLE_LINKED_LOGIN_TYPE =
             new LinkedLoginType(GOOGLE_PROVIDER_ID, false, LoginTypeUnlinkState.AVAILABLE);
     private static final ProfileLinkedLoginTypeOptionDto GOOGLE_LINKED_LOGIN_TYPE_OPTION =
-            new ProfileLinkedLoginTypeOptionDto(GOOGLE_PROVIDER_ID, GOOGLE_LABEL, false, true, "");
+            new ProfileLinkedLoginTypeOptionDto(
+                    GOOGLE_PROVIDER_ID,
+                    GOOGLE_LABEL,
+                    false,
+                    false,
+                    true,
+                    "");
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String DISPLAY_NAME = "Person";
     private static final String EMAIL = "person@example.com";
@@ -95,10 +120,13 @@ class UserProfileControllerTest {
     private static final String UPLOADED_PICTURE_URL = "/profile-pictures/22222222-2222-2222-2222-222222222222.jpg";
     private static final String CURRENT_PASSWORD = "ValidPassword1";
     private static final String NEW_PASSWORD = "NewValidPassword1";
+    private static final String ENGLISH_LANGUAGE_TAG = "en";
+    private static final String NORWEGIAN_LANGUAGE_TAG = "nb";
 
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
     private final CurrentLoginProviderResolver currentLoginProviderResolver = Mockito.mock(CurrentLoginProviderResolver.class);
     private final UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+    private final UserSettingsService userSettingsService = Mockito.mock(UserSettingsService.class);
     private final LocalUserService localUserService = Mockito.mock(LocalUserService.class);
     private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
     private final ProfilePictureStorageService profilePictureStorageService = Mockito.mock(ProfilePictureStorageService.class);
@@ -109,12 +137,14 @@ class UserProfileControllerTest {
     private final ProfileSetupRequirementService profileSetupRequirementService =
             Mockito.mock(ProfileSetupRequirementService.class);
     private final NavigationPageModel navigationPageModel = Mockito.mock(NavigationPageModel.class);
-    private final ProfilePageModel profilePageModel = new ProfilePageModel();
+    private final LocalizationService localizationService = localizationService();
+    private final ProfilePageModel profilePageModel = new ProfilePageModel(localizationService);
     private final ProfileLoginTypesPageModel profileLoginTypesPageModel =
             new ProfileLoginTypesPageModel(
                     clientRegistrationRepository,
                     userLoginTypeService,
-                    externalIdentityLinkSession);
+                    externalIdentityLinkSession,
+                    localizationService);
     private final UserProfileController profileController =
             new UserProfileController(
                     currentUserIdResolver,
@@ -124,7 +154,9 @@ class UserProfileControllerTest {
                     userProfileService,
                     profileSetupSession,
                     profilePictureStorageService,
-                    profilePageModel);
+                    profilePageModel,
+                    localizationService,
+                    userSettingsService);
     private final UserProfilePasswordController passwordController =
             new UserProfilePasswordController(
                     currentUserIdResolver,
@@ -132,7 +164,8 @@ class UserProfileControllerTest {
                     profileSetupRequirementService,
                     navigationPageModel,
                     localUserService,
-                    profileSetupSession);
+                    profileSetupSession,
+                    localizationService);
     private final UserProfileLoginTypesController loginTypesController =
             new UserProfileLoginTypesController(
                     currentUserIdResolver,
@@ -144,12 +177,14 @@ class UserProfileControllerTest {
                     profileSetupSession,
                     userLoginTypeService,
                     externalIdentityLinkSession,
-                    profileLoginTypesPageModel);
+                    profileLoginTypesPageModel,
+                    localizationService);
     private final Authentication authentication =
             UsernamePasswordAuthenticationToken.authenticated("person", null, List.of());
 
     @BeforeEach
     void setUp() {
+        LocaleContextHolder.setLocale(TEST_LOCALE);
         when(currentLoginProviderResolver.providerId(Mockito.eq(authentication), Mockito.any()))
                 .thenReturn(Optional.of(LocalUserService.LOCAL_PROVIDER_ID));
         when(localUserService.loginName(USER_ID)).thenReturn(Optional.empty());
@@ -161,6 +196,11 @@ class UserProfileControllerTest {
         when(userLoginTypeService.canLinkLocalLoginType(USER_ID)).thenReturn(true);
         when(externalIdentityLinkSession.consumeFailure(Mockito.any())).thenReturn(Optional.empty());
         when(currentUserSession.currentUser(Mockito.any())).thenReturn(Optional.of(externalCurrentUser()));
+    }
+
+    @AfterEach
+    void resetLocale() {
+        LocaleContextHolder.resetLocaleContext();
     }
 
     @Test
@@ -181,6 +221,7 @@ class UserProfileControllerTest {
         assertThat(model.containsAttribute(LOCAL_LOGIN_NAME_ATTRIBUTE)).isFalse();
         assertThat(model.containsAttribute(PASSWORD_FORM_ATTRIBUTE)).isFalse();
         assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
+        assertThat(model.containsAttribute(LANGUAGE_OPTIONS_ATTRIBUTE)).isTrue();
         assertThat(model.getAttribute(PROFILE_FORM_ATTRIBUTE))
                 .isEqualTo(new UserProfileUpdateDto(DISPLAY_NAME, PICTURE_URL));
     }
@@ -251,6 +292,51 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void showsLoginTypesPageDuringProfileSetupWithoutLinkActions() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        final Model model = new ExtendedModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        when(currentUserSession.currentUser(request)).thenReturn(Optional.of(setupCurrentUser()));
+
+        final String view = loginTypesController.loginTypes(authentication, model, request);
+
+        assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_VIEW);
+        assertThat(model.getAttribute(LOGIN_TYPE_OPTIONS_ATTRIBUTE)).isEqualTo(List.of());
+        assertThat(model.getAttribute(LOCAL_LOGIN_TYPE_AVAILABLE_ATTRIBUTE)).isEqualTo(Boolean.FALSE);
+        final List<ProfileLinkedLoginTypeOptionDto> loginTypeOptions = linkedLoginTypeOptions(model);
+        assertThat(loginTypeOptions)
+                .singleElement()
+                .satisfies(option -> {
+                    assertThat(option.providerId()).isEqualTo(GOOGLE_PROVIDER_ID);
+                    assertThat(option.unlinkAvailable()).isFalse();
+                });
+    }
+
+    @Test
+    void marksLinkedLocalLoginTypeForTemplateLocalization() {
+        LocaleContextHolder.setLocale(Locale.forLanguageTag(NORWEGIAN_LANGUAGE_TAG));
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(userLoginTypeService.linkedLoginTypes(USER_ID, Optional.of(LocalUserService.LOCAL_PROVIDER_ID)))
+                .thenReturn(List.of(new LinkedLoginType(
+                        LocalUserService.LOCAL_PROVIDER_ID,
+                        true,
+                        LoginTypeUnlinkState.CURRENT_LOGIN)));
+        final Model model = new ExtendedModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+
+        final String view = loginTypesController.loginTypes(authentication, model, request);
+
+        assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_VIEW);
+        final List<ProfileLinkedLoginTypeOptionDto> loginTypeOptions = linkedLoginTypeOptions(model);
+        assertThat(loginTypeOptions)
+                .singleElement()
+                .satisfies(option -> {
+                    assertThat(option.localLoginType()).isTrue();
+                    assertThat(option.label()).isEqualTo(NORWEGIAN_LOCAL_LOGIN_TYPE_LABEL);
+                });
+    }
+
+    @Test
     void showsLoginTypesPageWithExternalLinkSuccessMessage() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         final Model model = new ExtendedModelMap();
@@ -260,7 +346,7 @@ class UserProfileControllerTest {
         final String view = loginTypesController.loginTypes(authentication, model, request);
 
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_VIEW);
-        assertThat(model.getAttribute(LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE)).isEqualTo("Login type linked.");
+        assertThat(model.getAttribute(LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE)).isEqualTo(LOGIN_TYPE_LINKED_MESSAGE);
     }
 
     @Test
@@ -275,7 +361,7 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_VIEW);
         assertThat(model.getAttribute(LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE))
-                .isEqualTo("This account already has that login type linked");
+                .isEqualTo(PROVIDER_ALREADY_LINKED_MESSAGE);
     }
 
     @Test
@@ -309,6 +395,7 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(PROFILE_SAVED_ATTRIBUTE)).isEqualTo(Boolean.TRUE);
         verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL));
+        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.ENGLISH);
     }
 
     @Test
@@ -328,6 +415,26 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, UPLOADED_PICTURE_URL));
+        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.ENGLISH);
+    }
+
+    @Test
+    void updatesCurrentProfileLanguage() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, NORWEGIAN_LANGUAGE_TAG);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
+        final Model model = new ExtendedModelMap();
+        final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = emptyPictureFile();
+
+        final String view = profileController.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
+
+        assertThat(view).isEqualTo(PROFILE_REDIRECT);
+        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.NORWEGIAN);
     }
 
     @Test
@@ -349,7 +456,7 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_VIEW);
         assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
         assertThat(bindingResult.getFieldError("pictureUrl").getDefaultMessage())
-                .isEqualTo("Profile picture must be a PNG, JPEG, or GIF image");
+                .isEqualTo(INVALID_PROFILE_PICTURE_MESSAGE);
         verify(userProfileService, never()).updateProfile(Mockito.any(), Mockito.any());
     }
 
@@ -426,7 +533,8 @@ class UserProfileControllerTest {
                 authentication, passwordForm, bindingResult, model, redirectAttributes, request);
 
         assertThat(view).isEqualTo(PROFILE_PASSWORD_VIEW);
-        assertThat(bindingResult.getFieldError("newPasswordConfirmation").getDefaultMessage()).isEqualTo("Passwords do not match");
+        assertThat(bindingResult.getFieldError("newPasswordConfirmation").getDefaultMessage())
+                .isEqualTo(PASSWORD_MISMATCH_MESSAGE);
         verify(localUserService, never()).changePassword(Mockito.any(), Mockito.any(), Mockito.any());
     }
 
@@ -458,7 +566,7 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE))
-                .isEqualTo("Email and password linked.");
+                .isEqualTo(LOCAL_LOGIN_TYPE_LINKED_MESSAGE);
         verify(localUserService).linkLogin(USER_ID, new LocalUserRegistration(EMAIL, NEW_PASSWORD));
     }
 
@@ -477,7 +585,8 @@ class UserProfileControllerTest {
                 authentication, form, bindingResult, model, redirectAttributes, request);
 
         assertThat(view).isEqualTo(PROFILE_LOCAL_LOGIN_TYPE_VIEW);
-        assertThat(bindingResult.getFieldError("passwordConfirmation").getDefaultMessage()).isEqualTo("Passwords do not match");
+        assertThat(bindingResult.getFieldError("passwordConfirmation").getDefaultMessage())
+                .isEqualTo(PASSWORD_MISMATCH_MESSAGE);
         verify(localUserService, never()).linkLogin(Mockito.any(), Mockito.any());
     }
 
@@ -491,7 +600,7 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE))
-                .isEqualTo("Login type unlinked.");
+                .isEqualTo(LOGIN_TYPE_UNLINKED_MESSAGE);
         verify(userLoginTypeService).unlinkLoginType(
                 USER_ID, GOOGLE_PROVIDER_ID, Optional.of(LocalUserService.LOCAL_PROVIDER_ID));
     }
@@ -508,7 +617,111 @@ class UserProfileControllerTest {
         final String view = loginTypesController.unlinkLoginType(authentication, GOOGLE_PROVIDER_ID, request, redirectAttributes);
 
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_REDIRECT);
-        assertThat(redirectAttributes.getFlashAttributes().get(LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE)).isEqualTo("Login type is not linked");
+        assertThat(redirectAttributes.getFlashAttributes().get(LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE))
+                .isEqualTo(UNLINKED_LOGIN_TYPE_MESSAGE);
+    }
+
+    private static LocalizationService localizationService() {
+        final StaticMessageSource messageSource = new StaticMessageSource();
+        messageSource.addMessage("language.option.en", TEST_LOCALE, "English");
+        messageSource.addMessage("language.option.nb", TEST_LOCALE, "Norwegian");
+        messageSource.addMessage("profile.picture.error.empty", TEST_LOCALE, "Choose a profile picture to upload");
+        messageSource.addMessage("profile.picture.error.file-too-large", TEST_LOCALE, "Profile picture is too large");
+        messageSource.addMessage("profile.picture.error.invalid-image", TEST_LOCALE, INVALID_PROFILE_PICTURE_MESSAGE);
+        messageSource.addMessage(
+                "profile.picture.error.dimensions-too-large",
+                TEST_LOCALE,
+                "Profile picture dimensions are too large");
+        messageSource.addMessage("profile.picture.error.upload-failed", TEST_LOCALE, "Could not upload profile picture");
+        messageSource.addMessage(
+                "profile.change-password.error.password-mismatch",
+                TEST_LOCALE,
+                PASSWORD_MISMATCH_MESSAGE);
+        messageSource.addMessage(
+                "profile.change-password.error.bad-current-password",
+                TEST_LOCALE,
+                "Current password is incorrect");
+        messageSource.addMessage(
+                "profile.change-password.access.local-required",
+                TEST_LOCALE,
+                "An established local account is required to change password");
+        messageSource.addMessage("profile.language.error.unsupported", TEST_LOCALE, "Choose a supported language");
+        messageSource.addMessage("profile.login-types.local.label", TEST_LOCALE, LOCAL_LOGIN_TYPE_LABEL);
+        messageSource.addMessage(
+                "profile.login-types.local.label",
+                Locale.forLanguageTag(NORWEGIAN_LANGUAGE_TAG),
+                NORWEGIAN_LOCAL_LOGIN_TYPE_LABEL);
+        messageSource.addMessage("profile.login-types.action.link", TEST_LOCALE, "Link");
+        messageSource.addMessage("profile.login-types.action.unlink", TEST_LOCALE, "Unlink");
+        messageSource.addMessage("profile.login-types.action.unlink", Locale.forLanguageTag(NORWEGIAN_LANGUAGE_TAG), "Koble fra");
+        messageSource.addMessage("profile.login-types.confirm.unlink-title", TEST_LOCALE, "Unlink {0}?");
+        messageSource.addMessage(
+                "profile.login-types.confirm.unlink-title",
+                Locale.forLanguageTag(NORWEGIAN_LANGUAGE_TAG),
+                "Koble fra {0}?");
+        messageSource.addMessage("profile.login-types.status.available", TEST_LOCALE, "");
+        messageSource.addMessage("profile.login-types.status.current-login", TEST_LOCALE, "Current login");
+        messageSource.addMessage(
+                "profile.login-types.status.current-login",
+                Locale.forLanguageTag(NORWEGIAN_LANGUAGE_TAG),
+                "Nåværende innlogging");
+        messageSource.addMessage("profile.login-types.status.last-login-type", TEST_LOCALE, "Only login type");
+        messageSource.addMessage("profile.login-types.status.unknown-current-login", TEST_LOCALE, "Log in again to unlink");
+        messageSource.addMessage("profile.login-types.message.linked", TEST_LOCALE, LOGIN_TYPE_LINKED_MESSAGE);
+        messageSource.addMessage("profile.login-types.message.local-linked", TEST_LOCALE, LOCAL_LOGIN_TYPE_LINKED_MESSAGE);
+        messageSource.addMessage("profile.login-types.message.unlinked", TEST_LOCALE, LOGIN_TYPE_UNLINKED_MESSAGE);
+        messageSource.addMessage(
+                "profile.login-types.error.provider-mismatch",
+                TEST_LOCALE,
+                "Could not link the selected login type. Try again.");
+        messageSource.addMessage(
+                "profile.login-types.error.external-identity-used",
+                TEST_LOCALE,
+                "That login type is already linked to another account");
+        messageSource.addMessage(
+                "profile.login-types.error.provider-already-linked",
+                TEST_LOCALE,
+                PROVIDER_ALREADY_LINKED_MESSAGE);
+        messageSource.addMessage("profile.login-types.error.password-mismatch", TEST_LOCALE, PASSWORD_MISMATCH_MESSAGE);
+        messageSource.addMessage(
+                "profile.login-types.error.local-email-used",
+                TEST_LOCALE,
+                "That email is already linked to another account");
+        messageSource.addMessage(
+                "profile.login-types.error.unlink-current-login",
+                TEST_LOCALE,
+                "You cannot unlink the login type used for this session");
+        messageSource.addMessage(
+                "profile.login-types.error.unlink-last-login-type",
+                TEST_LOCALE,
+                "At least one login type must remain linked");
+        messageSource.addMessage(
+                "profile.login-types.error.unlink-unknown-current-login",
+                TEST_LOCALE,
+                "Log in again before unlinking login types");
+        messageSource.addMessage("profile.login-types.error.unlink-not-linked", TEST_LOCALE, UNLINKED_LOGIN_TYPE_MESSAGE);
+        messageSource.addMessage(
+                "profile.login-types.access.link-requires-complete-profile",
+                TEST_LOCALE,
+                "A complete profile is required to link login types");
+        messageSource.addMessage(
+                "profile.login-types.access.unlink-requires-complete-profile",
+                TEST_LOCALE,
+                "A complete profile is required to unlink login types");
+        messageSource.addMessage(
+                "profile.login-types.access.local-login-unavailable",
+                TEST_LOCALE,
+                "Email and password login is not available to link");
+        messageSource.addMessage(
+                "profile.login-types.access.external-login-unavailable",
+                TEST_LOCALE,
+                "Login type is not available to link");
+        return new LocalizationService(messageSource);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<ProfileLinkedLoginTypeOptionDto> linkedLoginTypeOptions(@NonNull Model model) {
+        return (List<ProfileLinkedLoginTypeOptionDto>) model.getAttribute(LINKED_LOGIN_TYPE_OPTIONS_ATTRIBUTE);
     }
 
     private MockMultipartFile emptyPictureFile() {

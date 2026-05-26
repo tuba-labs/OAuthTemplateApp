@@ -9,6 +9,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.ui.login.dtos.LoginOptionDto;
 
 import java.util.ArrayList;
@@ -20,13 +21,15 @@ public class LoginController {
 
     private static final String LOGIN_VIEW = "ui/login/login";
     private static final String LOCAL_LOGIN_VIEW = "ui/login/login-local";
-    private static final LoginOptionDto LOCAL_LOGIN_OPTION =
-            new LoginOptionDto("Continue with email and password", "/login/local");
+    private static final String LOCAL_LOGIN_PATH = "/login/local";
 
-    private final List<LoginOptionDto> loginOptions;
+    private final List<LoginOptionDto> oauth2LoginOptions;
+    private final LocalizationService localizationService;
 
-    public LoginController(@NonNull ClientRegistrationRepository clientRegistrationRepository) {
-        this.loginOptions = loginOptions(clientRegistrationRepository);
+    public LoginController(@NonNull ClientRegistrationRepository clientRegistrationRepository,
+                           @NonNull LocalizationService localizationService) {
+        this.oauth2LoginOptions = oauth2LoginOptions(clientRegistrationRepository);
+        this.localizationService = localizationService;
     }
 
     @GetMapping("/login")
@@ -34,7 +37,7 @@ public class LoginController {
         if (authenticated(authentication)) {
             return "redirect:/";
         }
-        model.addAttribute("loginOptions", loginOptions);
+        model.addAttribute("loginOptions", loginOptions());
         return LOGIN_VIEW;
     }
 
@@ -57,10 +60,10 @@ public class LoginController {
                 && !(authentication instanceof AnonymousAuthenticationToken);
     }
 
-    private List<LoginOptionDto> loginOptions(@NonNull ClientRegistrationRepository clientRegistrationRepository) {
+    private List<LoginOptionDto> loginOptions() {
         final List<LoginOptionDto> options = new ArrayList<>();
-        options.addAll(oauth2LoginOptions(clientRegistrationRepository));
-        options.add(LOCAL_LOGIN_OPTION);
+        options.addAll(oauth2LoginOptions);
+        options.add(new LoginOptionDto(localizationService.message("login.option.local"), LOCAL_LOGIN_PATH));
         return List.copyOf(options);
     }
 

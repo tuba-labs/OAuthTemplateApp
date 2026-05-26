@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH_MESSAGE;
 
 @JdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -60,7 +61,7 @@ class UserProfileServiceTest extends AbstractJdbcTestBaseTestClass {
                 USER_ID,
                 new UserProfileUpdate(LONG_DISPLAY_NAME, PICTURE_URL)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Display name must be 20 characters or fewer");
+                .hasMessageContaining(DISPLAY_NAME_MAX_LENGTH_MESSAGE);
     }
 
     @Test

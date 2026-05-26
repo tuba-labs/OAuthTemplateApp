@@ -4,11 +4,9 @@ import lombok.NonNull;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.authentication.RememberMeServices;
-import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 
-import javax.sql.DataSource;
 import java.util.UUID;
 
 @Configuration
@@ -17,13 +15,6 @@ public class RememberMeConfig {
     public static final String REMEMBER_ME_PARAMETER = "remember-me";
     private static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
     private static final String REMEMBER_ME_KEY = UUID.randomUUID().toString();
-
-    @Bean
-    PersistentTokenRepository persistentTokenRepository(@NonNull DataSource dataSource) {
-        final JdbcTokenRepositoryImpl repository = new JdbcTokenRepositoryImpl();
-        repository.setDataSource(dataSource);
-        return repository;
-    }
 
     @Bean
     RememberMeServices rememberMeServices(@NonNull RememberedUserDetailsService rememberedUserDetailsService,

@@ -3,16 +3,22 @@ package org.tubalabs.app.navigation;
 import lombok.NonNull;
 
 public record PageModel(
-        @NonNull String label,
-        @NonNull String tooltip,
+        @NonNull PageText text,
         @NonNull String relativeUrl,
-        boolean visibleInNavigation) {
+        boolean visibleInNavigation,
+        @NonNull PageAvailability availability) {
 
-    public PageModel(@NonNull String label, @NonNull String tooltip, @NonNull String relativeUrl) {
-        this(label, tooltip, relativeUrl, true);
+    public PageModel(@NonNull PageText text, @NonNull String relativeUrl) {
+        this(text, relativeUrl, true, PageAvailability.ALWAYS);
     }
 
-    public PageModel(@NonNull String label, @NonNull String relativeUrl) {
-        this(label, label, relativeUrl, true);
+    public PageModel(@NonNull PageText text, @NonNull String relativeUrl, boolean visibleInNavigation) {
+        this(text, relativeUrl, visibleInNavigation, PageAvailability.ALWAYS);
+    }
+
+    public PageModel(@NonNull PageText text,
+                     @NonNull String relativeUrl,
+                     @NonNull PageAvailability availability) {
+        this(text, relativeUrl, true, availability);
     }
 }

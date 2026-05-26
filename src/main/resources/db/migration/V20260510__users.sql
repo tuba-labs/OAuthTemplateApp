@@ -79,7 +79,7 @@ CREATE TABLE user_password_credential
         UNIQUE (email)
 );
 
-CREATE TABLE persistent_logins
+CREATE TABLE user_persistent_logins
 (
     username  VARCHAR(320) NOT NULL,
     series    VARCHAR(64) PRIMARY KEY,
@@ -87,5 +87,13 @@ CREATE TABLE persistent_logins
     last_used TIMESTAMP    NOT NULL
 );
 
-CREATE INDEX persistent_logins_username_idx
-    ON persistent_logins (username);
+CREATE INDEX user_persistent_logins_username_idx
+    ON user_persistent_logins (username);
+CREATE TABLE user_settings
+(
+    user_id                     UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+    modified                    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created                     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    remember_login_prompt_after TIMESTAMP,
+    language_tag                VARCHAR(10) NOT NULL DEFAULT 'en'
+);

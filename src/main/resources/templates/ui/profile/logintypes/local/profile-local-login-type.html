@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.toLanguageTag()}" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Link email and password</title>
+    <title th:text="#{navigation.page.profile.login-types.link-local.label}"></title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/navigation-state.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="app-page">
@@ -12,9 +13,9 @@
 <main class="app-content">
 <section class="panel panel-wide">
     <div class="profile-title-row">
-        <h1 class="page-title">Link email and password</h1>
+        <h1 class="page-title" th:text="#{navigation.page.profile.login-types.link-local.label}"></h1>
     </div>
-    <p class="page-subtitle">Add an email and password login to this account.</p>
+    <p class="page-subtitle" th:text="#{navigation.page.profile.login-types.link-local.tooltip}"></p>
 
     <form class="form"
           method="post"
@@ -22,26 +23,28 @@
           th:object="${localLoginTypeForm}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <div class="field" th:if="${#fields.hasGlobalErrors()}">
-            <span class="field-error" th:each="error : ${#fields.globalErrors()}" th:text="${error}">Could not link login type.</span>
+            <span class="field-error" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></span>
         </div>
         <label class="field">
-            <span>Email</span>
+            <span th:text="#{profile.login-types.local.email.label}"></span>
             <input th:field="*{email}" type="email" autocomplete="email" required maxlength="320">
             <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
         </label>
         <label class="field">
-            <span>Password</span>
+            <span th:text="#{profile.login-types.local.password.label}"></span>
             <input th:field="*{password}" type="password" autocomplete="new-password" required>
             <span class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
         </label>
         <label class="field">
-            <span>Confirm password</span>
+            <span th:text="#{profile.login-types.local.password-confirmation.label}"></span>
             <input th:field="*{passwordConfirmation}" type="password" autocomplete="new-password" required>
             <span class="field-error" th:if="${#fields.hasErrors('passwordConfirmation')}" th:errors="*{passwordConfirmation}"></span>
         </label>
         <div class="button-row">
-            <a class="button button-secondary" th:href="@{/profile/login-types}">Back</a>
-            <button class="button" type="submit">Link</button>
+            <a class="button button-secondary"
+               th:href="@{/profile/login-types}"
+               th:text="#{profile.login-types.action.back}"></a>
+            <button class="button" type="submit" th:text="#{profile.login-types.action.link}"></button>
         </div>
     </form>
 </section>

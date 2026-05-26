@@ -1,24 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" th:lang="${#locale.toLanguageTag()}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign in</title>
+    <title th:text="#{login.title}">Sign in</title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/language-selector.js}" defer></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body class="page">
 <main class="panel panel-wide">
     <div class="panel-header">
         <div>
-            <h1 class="page-title">Welcome</h1>
-            <p class="page-subtitle">Choose a sign in method.</p>
+            <h1 class="page-title" th:text="#{login.heading}">Welcome</h1>
+            <p class="page-subtitle" th:text="#{login.subtitle}">Choose a sign in method. Accounts are created automatically.</p>
         </div>
-        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Use light theme">
-            <span class="theme-toggle-track" aria-hidden="true">
-                <span class="theme-toggle-thumb"></span>
-            </span>
-        </button>
     </div>
 
     <section>
@@ -27,6 +23,25 @@
                 <a class="login-option" th:href="${option.href}" th:text="${option.label}">Continue</a>
             </li>
         </ul>
+        <div class="welcome-preferences">
+            <div class="welcome-preference">
+                <div th:replace="~{language/ui/language-selector :: selector}"></div>
+                <span class="welcome-preference-label" th:text="#{language.selector.label}">Language</span>
+            </div>
+            <div class="welcome-preference">
+
+                <button class="theme-toggle"
+                        type="button"
+                        data-theme-toggle
+                        aria-pressed="false"
+                        th:attr="aria-label=#{theme.use-light},data-theme-use-light-label=#{theme.use-light},data-theme-use-dark-label=#{theme.use-dark}">
+                    <span class="theme-toggle-track" aria-hidden="true">
+                        <span class="theme-toggle-thumb"></span>
+                    </span>
+                </button>
+                <span class="welcome-preference-label" th:text="#{theme.label}">Theme</span>
+            </div>
+        </div>
     </section>
 </main>
 </body>
