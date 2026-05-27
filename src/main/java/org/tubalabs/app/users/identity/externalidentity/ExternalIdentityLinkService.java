@@ -4,8 +4,10 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 
@@ -20,6 +22,8 @@ public class ExternalIdentityLinkService {
     private final Clock clock;
     private final UserIdentityRepository userIdentityRepository;
     private final UserLoginRepository userLoginRepository;
+    private final EventLogService eventLogService;
+    private final UserIdentityEventFactory userIdentityEventFactory;
 
     @Transactional
     public void link(@NonNull UUID userId,
@@ -36,8 +40,9 @@ public class ExternalIdentityLinkService {
             throw new IdentityLinkException(IdentityLinkFailure.EXTERNAL_IDENTITY_USED);
         }
 
-        userIdentityRepository.insert(newIdentity(userId, externalIdentity));
+        final UserIdentityDbo identity = userIdentityRepository.insert(newIdentity(userId, externalIdentity));
         insertLogin(userId, externalIdentity, clientIp, userAgent);
+        eventLogService.record(userIdentityEventFactory.signInMethodLinked(identity, clientIp, userAgent));
     }
 
     private UserIdentityDbo newIdentity(@NonNull UUID userId, @NonNull ExternalIdentity externalIdentity) {

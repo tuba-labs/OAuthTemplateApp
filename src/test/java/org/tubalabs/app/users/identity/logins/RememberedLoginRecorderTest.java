@@ -15,8 +15,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.tubalabs.app.events.EventLog;
+import org.tubalabs.app.events.EventLogService;
+import org.tubalabs.app.events.EventType;
 import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 
@@ -46,8 +50,14 @@ class RememberedLoginRecorderTest {
 
     private final CurrentLoginIdentityResolver currentLoginIdentityResolver = Mockito.mock(CurrentLoginIdentityResolver.class);
     private final UserLoginRepository userLoginRepository = Mockito.mock(UserLoginRepository.class);
+    private final EventLogService eventLogService = Mockito.mock(EventLogService.class);
+    private final UserIdentityEventFactory userIdentityEventFactory = new UserIdentityEventFactory();
     private final RememberedLoginRecorder recorder = new RememberedLoginRecorder(
-            Clock.fixed(NOW, ZoneOffset.UTC), currentLoginIdentityResolver, userLoginRepository);
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            currentLoginIdentityResolver,
+            userLoginRepository,
+            eventLogService,
+            userIdentityEventFactory);
 
     @AfterEach
     void resetRequestAttributes() {
@@ -60,6 +70,7 @@ class RememberedLoginRecorderTest {
         when(currentLoginIdentityResolver.identity(authentication)).thenReturn(Optional.of(identity()));
         setRequest();
         final ArgumentCaptor<UserLoginDbo> login = ArgumentCaptor.forClass(UserLoginDbo.class);
+        final ArgumentCaptor<EventLog> eventLog = ArgumentCaptor.forClass(EventLog.class);
 
         recorder.recordRememberedLogin(new InteractiveAuthenticationSuccessEvent(
                 authentication, RememberMeAuthenticationFilter.class));
@@ -72,6 +83,18 @@ class RememberedLoginRecorderTest {
         assertThat(login.getValue().subject()).isEqualTo(SUBJECT);
         assertThat(login.getValue().clientIp()).isEqualTo(CLIENT_IP);
         assertThat(login.getValue().userAgent()).isEqualTo(USER_AGENT);
+        verify(eventLogService).record(eventLog.capture());
+        assertThat(eventLog.getValue().eventType()).isEqualTo(EventType.USER_LOGIN.value());
+        assertThat(eventLog.getValue().actorUserId()).isEqualTo(USER_ID);
+        assertThat(eventLog.getValue().subjectType()).isEqualTo("user_identity");
+        assertThat(eventLog.getValue().subjectId()).isEqualTo(IDENTITY_ID.toString());
+        assertThat(eventLog.getValue().clientIp()).isEqualTo(CLIENT_IP);
+        assertThat(eventLog.getValue().userAgent()).isEqualTo(USER_AGENT);
+        assertThat(eventLog.getValue().details())
+                .containsEntry("providerId", PROVIDER_ID)
+                .containsEntry("subject", SUBJECT)
+                .containsEntry("remembered", true)
+                .containsEntry("newUser", false);
     }
 
     @Test
@@ -82,7 +105,7 @@ class RememberedLoginRecorderTest {
         recorder.recordRememberedLogin(new InteractiveAuthenticationSuccessEvent(
                 authentication, RememberMeAuthenticationFilter.class));
 
-        verifyNoInteractions(userLoginRepository);
+        verifyNoInteractions(userLoginRepository, eventLogService);
     }
 
     @Test
@@ -92,7 +115,7 @@ class RememberedLoginRecorderTest {
         recorder.recordRememberedLogin(new InteractiveAuthenticationSuccessEvent(
                 authentication, UsernamePasswordAuthenticationToken.class));
 
-        verifyNoInteractions(userLoginRepository);
+        verifyNoInteractions(userLoginRepository, eventLogService);
     }
 
     @Test
@@ -103,7 +126,7 @@ class RememberedLoginRecorderTest {
         recorder.recordRememberedLogin(new InteractiveAuthenticationSuccessEvent(
                 authentication, RememberMeAuthenticationFilter.class));
 
-        verifyNoInteractions(userLoginRepository);
+        verifyNoInteractions(userLoginRepository, eventLogService);
     }
 
     private void setRequest() {

@@ -120,6 +120,8 @@ class UserProfileControllerTest {
     private static final String UPLOADED_PICTURE_URL = "/profile-pictures/22222222-2222-2222-2222-222222222222.jpg";
     private static final String CURRENT_PASSWORD = "ValidPassword1";
     private static final String NEW_PASSWORD = "NewValidPassword1";
+    private static final String CLIENT_IP = "127.0.0.1";
+    private static final String USER_AGENT = "JUnit";
     private static final String ENGLISH_LANGUAGE_TAG = "en";
     private static final String NORWEGIAN_LANGUAGE_TAG = "nb";
 
@@ -560,6 +562,8 @@ class UserProfileControllerTest {
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr(CLIENT_IP);
+        request.addHeader("User-Agent", USER_AGENT);
 
         final String view = loginTypesController.linkLocalLoginType(
                 authentication, form, bindingResult, model, redirectAttributes, request);
@@ -567,7 +571,8 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_LOGIN_TYPES_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE))
                 .isEqualTo(LOCAL_LOGIN_TYPE_LINKED_MESSAGE);
-        verify(localUserService).linkLogin(USER_ID, new LocalUserRegistration(EMAIL, NEW_PASSWORD));
+        verify(localUserService).linkLogin(
+                USER_ID, new LocalUserRegistration(EMAIL, NEW_PASSWORD), CLIENT_IP, USER_AGENT);
     }
 
     @Test
@@ -587,7 +592,8 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_LOCAL_LOGIN_TYPE_VIEW);
         assertThat(bindingResult.getFieldError("passwordConfirmation").getDefaultMessage())
                 .isEqualTo(PASSWORD_MISMATCH_MESSAGE);
-        verify(localUserService, never()).linkLogin(Mockito.any(), Mockito.any());
+        verify(localUserService, never()).linkLogin(
+                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     @Test

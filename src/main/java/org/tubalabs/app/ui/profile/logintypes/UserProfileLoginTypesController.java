@@ -155,7 +155,9 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
         try {
             localUserService.linkLogin(
                     userId,
-                    new LocalUserRegistration(localLoginTypeForm.email(), localLoginTypeForm.password()));
+                    new LocalUserRegistration(localLoginTypeForm.email(), localLoginTypeForm.password()),
+                    clientIp(request),
+                    userAgent(request));
         } catch (LocalUserAlreadyExistsException exception) {
             bindingResult.rejectValue(
                     "email",
@@ -217,5 +219,13 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
         return currentUserSession.currentUser(request)
                 .orElseGet(() -> currentUserSession.refresh(
                         request, userId, profileSetupSession.isProfileSetupRequired(request)));
+    }
+
+    private String clientIp(@NonNull HttpServletRequest request) {
+        return Objects.requireNonNullElse(request.getRemoteAddr(), "");
+    }
+
+    private String userAgent(@NonNull HttpServletRequest request) {
+        return Objects.requireNonNullElse(request.getHeader("User-Agent"), "");
     }
 }

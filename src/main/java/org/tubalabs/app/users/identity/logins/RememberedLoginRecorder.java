@@ -14,8 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 
@@ -32,6 +34,8 @@ public class RememberedLoginRecorder {
     private final Clock clock;
     private final CurrentLoginIdentityResolver currentLoginIdentityResolver;
     private final UserLoginRepository userLoginRepository;
+    private final EventLogService eventLogService;
+    private final UserIdentityEventFactory userIdentityEventFactory;
 
     @EventListener
     public void recordRememberedLogin(@NonNull InteractiveAuthenticationSuccessEvent event) {
@@ -46,7 +50,13 @@ public class RememberedLoginRecorder {
             return;
         }
 
-        userLoginRepository.insert(newLogin(identity.orElseThrow(), authentication));
+        final UserIdentityDbo resolvedIdentity = identity.orElseThrow();
+        final Optional<HttpServletRequest> request = currentRequest();
+        final String clientIp = clientIp(request, authentication);
+        final String userAgent = userAgent(request);
+
+        userLoginRepository.insert(newLogin(resolvedIdentity, clientIp, userAgent));
+        eventLogService.record(userIdentityEventFactory.login(resolvedIdentity, clientIp, userAgent, true, false));
     }
 
     private boolean isRememberMeAutoLogin(InteractiveAuthenticationSuccessEvent event) {
@@ -54,16 +64,15 @@ public class RememberedLoginRecorder {
                 && event.getAuthentication() instanceof RememberMeAuthenticationToken;
     }
 
-    private UserLoginDbo newLogin(UserIdentityDbo identity, Authentication authentication) {
-        final Optional<HttpServletRequest> request = currentRequest();
+    private UserLoginDbo newLogin(UserIdentityDbo identity, String clientIp, String userAgent) {
         return UserLoginDbo.builder()
                 .id(UUID.randomUUID())
                 .userId(identity.userId())
                 .loginTime(Timestamp.from(clock.instant()))
                 .providerId(identity.providerId())
                 .subject(identity.subject())
-                .clientIp(clientIp(request, authentication))
-                .userAgent(userAgent(request))
+                .clientIp(clientIp)
+                .userAgent(userAgent)
                 .build();
     }
 

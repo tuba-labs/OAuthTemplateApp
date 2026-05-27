@@ -9,9 +9,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.tubalabs.app.etc.TimeConfig;
 import org.tubalabs.app.etc.db.SqlColumnNameResolver;
 import org.tubalabs.app.etc.db.SqlRecordIntrospector;
+import org.tubalabs.app.events.EventLogService;
+import org.tubalabs.app.events.EventType;
+import org.tubalabs.app.events.db.EventLogRepository;
 import org.tubalabs.app.testtools.AbstractJdbcTestBaseTestClass;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
@@ -30,6 +34,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
         UserRepository.class,
         UserIdentityRepository.class,
         UserLoginRepository.class,
+        EventLogRepository.class,
+        EventLogService.class,
+        UserIdentityEventFactory.class,
         ExternalIdentityLinkService.class
 })
 class ExternalIdentityLinkServiceTest extends AbstractJdbcTestBaseTestClass {
@@ -69,6 +76,7 @@ class ExternalIdentityLinkServiceTest extends AbstractJdbcTestBaseTestClass {
         assertThat(linkedIdentity.userId()).isEqualTo(USER_ID);
         assertThat(linkedIdentity.displayName()).isEqualTo(DISPLAY_NAME);
         assertThat(loginCount(USER_ID)).isEqualTo(1);
+        assertThat(eventCount(USER_ID, EventType.SIGN_IN_METHOD_LINKED.value())).isEqualTo(1);
     }
 
     @Test
@@ -138,6 +146,19 @@ class ExternalIdentityLinkServiceTest extends AbstractJdbcTestBaseTestClass {
     private int loginCount(UUID userId) {
         return jdbcClient.sql("SELECT COUNT(*) FROM user_login WHERE user_id = :user_id")
                 .param("user_id", userId)
+                .query(Integer.class)
+                .single();
+    }
+
+    private int eventCount(UUID userId, String eventType) {
+        return jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM event_log
+                        WHERE actor_user_id = :user_id
+                          AND event_type = :event_type
+                """)
+                .param("user_id", userId)
+                .param("event_type", eventType)
                 .query(Integer.class)
                 .single();
     }

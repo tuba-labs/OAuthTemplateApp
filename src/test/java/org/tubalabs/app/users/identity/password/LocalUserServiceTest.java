@@ -11,12 +11,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.tubalabs.app.etc.TimeConfig;
 import org.tubalabs.app.etc.db.SqlColumnNameResolver;
 import org.tubalabs.app.etc.db.SqlRecordIntrospector;
+import org.tubalabs.app.events.EventLogService;
+import org.tubalabs.app.events.EventType;
+import org.tubalabs.app.events.db.EventLogRepository;
 import org.tubalabs.app.testtools.AbstractJdbcTestBaseTestClass;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
-import org.tubalabs.app.users.identity.password.*;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
@@ -47,6 +50,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         UserRepository.class,
         UserIdentityRepository.class,
         UserLoginRepository.class,
+        EventLogRepository.class,
+        EventLogService.class,
+        UserIdentityEventFactory.class,
         UserPasswordCredentialRepository.class,
         UserProfileRepository.class
 })
@@ -105,6 +111,7 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         assertThat(passwordEncoder.matches(PASSWORD, credential.passwordHash())).isTrue();
         assertThat(profile.displayName()).isEqualTo(DISPLAY_NAME);
         assertThat(loginCount(createResult.id())).isEqualTo(1);
+        assertThat(eventCount(createResult.id(), EventType.USER_LOGIN.value())).isEqualTo(1);
     }
 
     @Test
@@ -133,7 +140,11 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     void linksLocalLoginToExistingUser() {
         userRepository.insert(new UserDbo(EXISTING_USER_ID));
 
-        localUserService.linkLogin(EXISTING_USER_ID, new LocalUserRegistration(MIXED_CASE_EMAIL, PASSWORD));
+        localUserService.linkLogin(
+                EXISTING_USER_ID,
+                new LocalUserRegistration(MIXED_CASE_EMAIL, PASSWORD),
+                CLIENT_IP,
+                USER_AGENT);
 
         final UserPasswordCredentialDbo credential = userPasswordCredentialRepository.findByEmail(EMAIL).orElseThrow();
         final UserIdentityDbo identity = userIdentityRepository
@@ -145,8 +156,11 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         assertThat(identity.userId()).isEqualTo(EXISTING_USER_ID);
         assertThat(userProfileRepository.findByUserId(EXISTING_USER_ID)).isEmpty();
         assertThat(loginCount(EXISTING_USER_ID)).isZero();
+        assertThat(eventCount(EXISTING_USER_ID, EventType.SIGN_IN_METHOD_LINKED.value())).isEqualTo(1);
+        assertThat(eventCount(EXISTING_USER_ID, EventType.USER_LOGIN.value())).isZero();
         assertThat(localUserService.login(EMAIL, PASSWORD, CLIENT_IP, USER_AGENT).userId()).isEqualTo(EXISTING_USER_ID);
         assertThat(loginCount(EXISTING_USER_ID)).isEqualTo(1);
+        assertThat(eventCount(EXISTING_USER_ID, EventType.USER_LOGIN.value())).isEqualTo(1);
     }
 
     @Test
@@ -154,7 +168,10 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         final CreateResult createResult = localUserService.register(new LocalUserRegistration(EMAIL, PASSWORD));
 
         assertThatThrownBy(() -> localUserService.linkLogin(
-                createResult.id(), new LocalUserRegistration("other@example.com", NEW_PASSWORD)))
+                createResult.id(),
+                new LocalUserRegistration("other@example.com", NEW_PASSWORD),
+                CLIENT_IP,
+                USER_AGENT))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("already has email and password");
     }
@@ -165,7 +182,10 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
         userRepository.insert(new UserDbo(EXISTING_USER_ID));
 
         assertThatThrownBy(() -> localUserService.linkLogin(
-                EXISTING_USER_ID, new LocalUserRegistration(MIXED_CASE_EMAIL, NEW_PASSWORD)))
+                EXISTING_USER_ID,
+                new LocalUserRegistration(MIXED_CASE_EMAIL, NEW_PASSWORD),
+                CLIENT_IP,
+                USER_AGENT))
                 .isInstanceOf(LocalUserAlreadyExistsException.class);
     }
 
@@ -211,6 +231,19 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
     private int loginCount(UUID userId) {
         return jdbcClient.sql("SELECT COUNT(*) FROM user_login WHERE user_id = :user_id")
                 .param("user_id", userId)
+                .query(Integer.class)
+                .single();
+    }
+
+    private int eventCount(UUID userId, String eventType) {
+        return jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM event_log
+                        WHERE actor_user_id = :user_id
+                          AND event_type = :event_type
+                """)
+                .param("user_id", userId)
+                .param("event_type", eventType)
                 .query(Integer.class)
                 .single();
     }
