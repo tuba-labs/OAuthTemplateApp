@@ -11,20 +11,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.identity.UserIdentityAlreadyExistsException;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
 import org.tubalabs.app.users.identity.password.validation.vetoers.CreationVetoResult;
+import org.tubalabs.app.users.identity.password.validation.vetoers.UserCreateVetoerService;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
-import org.tubalabs.app.users.identity.password.validation.vetoers.UserCreateVetoerService;
 
 import java.sql.Timestamp;
 import java.time.Clock;
@@ -50,7 +52,8 @@ public class LocalUserService {
     private final UserProfileService userProfileService;
     private final UserPasswordCredentialRepository userPasswordCredentialRepository;
     private final UserCreateVetoerService userCreateVetoerService;
-
+    private final EventLogService eventLogService;
+    private final UserIdentityEventFactory userIdentityEventFactory;
 
     @Transactional
     public CreateResult register(@Valid @NonNull LocalUserRegistration registration) {
@@ -89,7 +92,10 @@ public class LocalUserService {
     }
 
     @Transactional
-    public void linkLogin(@NonNull UUID userId, @Valid @NonNull LocalUserRegistration registration) {
+    public void linkLogin(@NonNull UUID userId,
+                          @Valid @NonNull LocalUserRegistration registration,
+                          @NonNull String clientIp,
+                          @NonNull String userAgent) {
         if (userPasswordCredentialRepository.findByUserId(userId).isPresent()
                 || userIdentityRepository.findByUserIdAndProviderId(userId, LOCAL_PROVIDER_ID).isPresent()) {
             throw new IllegalArgumentException("This account already has email and password login linked");
@@ -105,8 +111,9 @@ public class LocalUserService {
             throw new LocalUserAlreadyExistsException(normalizedEmail);
         }
 
-        insertLocalIdentity(UUID.randomUUID(), userId, normalizedEmail);
+        final UserIdentityDbo identity = insertLocalIdentity(UUID.randomUUID(), userId, normalizedEmail);
         insertPasswordCredential(userId, normalizedEmail, registration.password());
+        eventLogService.record(userIdentityEventFactory.signInMethodLinked(identity, clientIp, userAgent));
     }
 
     @Transactional
@@ -162,6 +169,7 @@ public class LocalUserService {
                 normalizedEmail,
                 clientIp,
                 userAgent));
+        eventLogService.record(userIdentityEventFactory.login(identity, clientIp, userAgent, false, false));
 
         return LoginResult.builder()
                 .identityId(identity.id())
@@ -172,11 +180,11 @@ public class LocalUserService {
                 .build();
     }
 
-    private void insertLocalIdentity(UUID identityId,
-                                     UUID userId,
-                                     String normalizedEmail) {
+    private UserIdentityDbo insertLocalIdentity(UUID identityId,
+                                                UUID userId,
+                                                String normalizedEmail) {
         try {
-            userIdentityRepository.insert(UserIdentityDbo.builder()
+            return userIdentityRepository.insert(UserIdentityDbo.builder()
                     .id(identityId)
                     .userId(userId)
                     .providerId(LOCAL_PROVIDER_ID)

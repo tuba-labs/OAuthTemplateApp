@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 import java.util.List;
 
@@ -15,8 +16,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-
     private final List<HttpSecurityCustomizer> customizers;
+    private final List<LogoutHandler> logoutHandlers;
 
     public interface HttpSecurityCustomizer {
         void customize(HttpSecurity http);
@@ -31,7 +32,12 @@ public class SecurityConfig {
                         .permitAll())
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint(SecurityAllowedPaths.LOGIN_PATH)))
-                .logout(logout -> logout.logoutSuccessUrl(SecurityAllowedPaths.LOGIN_PATH));
+                .logout(logout -> {
+                    for (LogoutHandler logoutHandler : logoutHandlers) {
+                        logout.addLogoutHandler(logoutHandler);
+                    }
+                    logout.logoutSuccessUrl(SecurityAllowedPaths.LOGIN_PATH);
+                });
 
         for (HttpSecurityCustomizer customizer : customizers) {
             customizer.customize(sec);
@@ -41,6 +47,4 @@ public class SecurityConfig {
                 .authenticated());
         return sec.build();
     }
-
-
 }

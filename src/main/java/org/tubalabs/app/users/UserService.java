@@ -6,9 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
+import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
 import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.profile.UserProfileService;
@@ -32,6 +34,8 @@ public class UserService {
     private final UserLoginRepository userLoginRepository;
 
     private final UserProfileService userProfileService;
+    private final EventLogService eventLogService;
+    private final UserIdentityEventFactory userIdentityEventFactory;
 
     @Transactional
     public LoginResult login(ExternalIdentity externalIdentity, String clientIp, String userAgent) {
@@ -69,6 +73,7 @@ public class UserService {
                 externalIdentity.subject(),
                 clientIp,
                 userAgent));
+        eventLogService.record(userIdentityEventFactory.login(identity, clientIp, userAgent, false, true));
 
         return LoginResult.builder()
                 .identityId(identity.id())
@@ -104,6 +109,7 @@ public class UserService {
                 externalIdentity.subject(),
                 clientIp,
                 userAgent));
+        eventLogService.record(userIdentityEventFactory.login(localIdentity, clientIp, userAgent, false, false));
 
         return LoginResult.builder()
                 .identityId(localIdentity.id())
@@ -149,4 +155,5 @@ public class UserService {
                 .userAgent(userAgent)
                 .build();
     }
+
 }
