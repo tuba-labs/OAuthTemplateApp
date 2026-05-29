@@ -2,7 +2,6 @@ package org.tubalabs.app.security;
 
 import lombok.NonNull;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public final class SecurityAllowedPaths {
@@ -36,12 +35,13 @@ public final class SecurityAllowedPaths {
             "/api/**"
     };
 
-    private static final List<String> PUBLIC_MATCHERS = combinedPublicMatchers();
     private static final List<String> PROFILE_SETUP_ALLOWED_MATCHERS = List.of(
             PROFILE_PATH,
-            PROFILE_PATH + "/**",
             LOGOUT_PATH,
             LANGUAGE_PATH,
+            ERROR_PATH,
+            "/css/**",
+            "/js/**",
             "/actuator/**",
             "/profile-pictures/**");
 
@@ -49,15 +49,7 @@ public final class SecurityAllowedPaths {
     }
 
     public static boolean isProfileSetupAllowedPath(@NonNull String path) {
-        return matchesAny(path, PUBLIC_MATCHERS) || matchesAny(path, PROFILE_SETUP_ALLOWED_MATCHERS);
-    }
-
-    private static List<String> combinedPublicMatchers() {
-        final List<String> matchers = new ArrayList<>();
-        matchers.addAll(List.of(CORE_PUBLIC_MATCHERS));
-        matchers.addAll(List.of(PASSWORD_PUBLIC_MATCHERS));
-        matchers.addAll(List.of(OAUTH2_PUBLIC_MATCHERS));
-        return List.copyOf(matchers);
+        return matchesAny(path, PROFILE_SETUP_ALLOWED_MATCHERS);
     }
 
     private static boolean matchesAny(String path, List<String> matchers) {

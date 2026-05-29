@@ -62,8 +62,9 @@ CREATE TABLE user_profile
     modified     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    display_name VARCHAR(20),
-    picture_url  VARCHAR(2000)
+    display_name     VARCHAR(20),
+    picture_url      VARCHAR(2000),
+    profile_complete BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 
@@ -89,11 +90,14 @@ CREATE TABLE user_persistent_logins
 
 CREATE INDEX user_persistent_logins_username_idx
     ON user_persistent_logins (username);
-CREATE TABLE user_settings
+
+CREATE TABLE user_preferences
 (
-    user_id                     UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-    modified                    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created                     TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    remember_login_prompt_after TIMESTAMP,
-    language_tag                VARCHAR(10) NOT NULL DEFAULT 'en'
+    user_id          UUID          NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    preference_key   VARCHAR(100)  NOT NULL,
+    preference_value VARCHAR(2000) NOT NULL,
+    modified         TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (user_id, preference_key)
 );

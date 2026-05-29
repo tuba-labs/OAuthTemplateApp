@@ -83,10 +83,8 @@ class NavigationPageModelTest {
         assertThat(navigationMenu.primaryItems().get(1).active()).isFalse();
         assertThat(navigationMenu.primaryItems().get(1).children())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly(LOGIN_TYPES_LABEL, CHANGE_PASSWORD_LABEL);
-        assertThat(navigationMenu.primaryItems().get(1).children().get(1).tooltip())
-                .isEqualTo(CHANGE_PASSWORD_TOOLTIP);
-        assertThat(navigationMenu.primaryItems().get(1).children().get(1).active()).isTrue();
+                .containsExactly(LOGIN_TYPES_LABEL);
+        assertThat(navigationMenu.primaryItems().get(1).children().getFirst().active()).isFalse();
         assertThat(navigationMenu.breadcrumbs())
                 .extracting(NavigationMenuItemDto::label)
                 .containsExactly(PROFILE_LABEL, CHANGE_PASSWORD_LABEL);
@@ -114,23 +112,14 @@ class NavigationPageModelTest {
     }
 
     @Test
-    void keepsLoginTypesVisibleDuringProfileSetup() {
+    void hidesNavigationDuringProfileSetup() {
         final CurrentUser currentUser = new CurrentUser(USER_ID, DISPLAY_NAME, null, true, EMAIL, true);
 
         final NavigationMenuDto navigationMenu = navigationPageModel.navigationMenu(currentUser, "/profile");
 
-        assertThat(navigationMenu.primaryItems())
-                .extracting(NavigationMenuItemDto::label)
-                .containsExactly(HOME_LABEL, PROFILE_LABEL);
-        assertThat(navigationMenu.primaryItems().get(1).children())
-                .extracting(NavigationMenuItemDto::label)
-                .containsExactly(LOGIN_TYPES_LABEL);
-        assertThat(navigationMenu.primaryItems().get(1).children().getFirst().children()).isEmpty();
-        assertThat(navigationMenu.primaryItems().get(1).active()).isTrue();
-        assertThat(navigationMenu.hasMenuItems()).isTrue();
-        assertThat(navigationMenu.breadcrumbs())
-                .extracting(NavigationMenuItemDto::label)
-                .containsExactly(PROFILE_LABEL);
+        assertThat(navigationMenu.primaryItems()).isEmpty();
+        assertThat(navigationMenu.breadcrumbs()).isEmpty();
+        assertThat(navigationMenu.hasMenuItems()).isFalse();
     }
 
     @Test
@@ -176,7 +165,7 @@ class NavigationPageModelTest {
                 .containsExactly(NORWEGIAN_HOME_LABEL, NORWEGIAN_PROFILE_LABEL);
         assertThat(navigationMenu.primaryItems().get(1).children())
                 .extracting(NavigationMenuItemDto::label)
-                .containsExactly(NORWEGIAN_LOGIN_TYPES_LABEL, NORWEGIAN_CHANGE_PASSWORD_LABEL);
+                .containsExactly(NORWEGIAN_LOGIN_TYPES_LABEL);
         assertThat(navigationMenu.breadcrumbs())
                 .extracting(NavigationMenuItemDto::label)
                 .containsExactly(NORWEGIAN_PROFILE_LABEL, NORWEGIAN_CHANGE_PASSWORD_LABEL);

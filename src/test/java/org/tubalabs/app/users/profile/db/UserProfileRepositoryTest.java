@@ -59,11 +59,13 @@ class UserProfileRepositoryTest extends AbstractJdbcTestBaseTestClass {
                 .userId(USER_ID)
                 .displayName(UPDATED_DISPLAY_NAME)
                 .pictureUrl(UPDATED_PICTURE_URL)
+                .profileComplete(true)
                 .build();
         final UserProfileDbo expectedProfile = UserProfileDbo.builder()
                 .userId(USER_ID)
                 .displayName(UPDATED_DISPLAY_NAME)
                 .pictureUrl(UPDATED_PICTURE_URL)
+                .profileComplete(true)
                 .build();
 
         final UserProfileDbo savedProfile = userProfileRepository.update(updatedProfile);

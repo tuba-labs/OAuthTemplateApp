@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{home.title}"></title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:if="${backgroundAnimationEnabled}" th:src="@{/js/ambient-dots.js}" defer></script>
     <script th:src="@{/js/navigation-state.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>

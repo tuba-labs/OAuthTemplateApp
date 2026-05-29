@@ -93,17 +93,17 @@ public class Oauth2SecurityCustomizer {
             if (result.newUser()) {
                 profileSetupSession.requireProfileSetup(request);
                 currentUserSession.refresh(request, result.userId(), true);
-                response.sendRedirect(ProfilePage.RELATIVE_URL);
+                redirectTo(request, response, ProfilePage.RELATIVE_URL);
                 return;
             }
             final boolean profileSetupRequired =
                     profileSetupRequirementService.requireSetupIfProfileIncomplete(request, result.userId());
             currentUserSession.refresh(request, result.userId(), profileSetupRequired);
             if (profileSetupRequired) {
-                response.sendRedirect(ProfilePage.RELATIVE_URL);
+                redirectTo(request, response, ProfilePage.RELATIVE_URL);
                 return;
             }
-            response.sendRedirect("/remember-login");
+            redirectTo(request, response, "/remember-login");
         };
     }
 
@@ -117,7 +117,7 @@ public class Oauth2SecurityCustomizer {
         if (!pendingLink.providerId().equals(providerId)) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             externalIdentityLinkSession.fail(request, IdentityLinkFailure.PROVIDER_MISMATCH);
-            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
+            redirectTo(request, response, ProfileLoginTypesPage.RELATIVE_URL);
             return;
         }
 
@@ -125,11 +125,11 @@ public class Oauth2SecurityCustomizer {
             externalIdentityLinkService.link(pendingLink.userId(), identity, clientIp, userAgent);
             externalIdentityLinkSession.complete(request);
             currentUserSession.refresh(request, pendingLink.userId(), profileSetupSession.isProfileSetupRequired(request));
-            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
+            redirectTo(request, response, ProfileLoginTypesPage.RELATIVE_URL);
         } catch (IdentityLinkException exception) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             externalIdentityLinkSession.fail(request, exception.reason());
-            response.sendRedirect(ProfileLoginTypesPage.RELATIVE_URL);
+            redirectTo(request, response, ProfileLoginTypesPage.RELATIVE_URL);
         } catch (RuntimeException exception) {
             restoreOriginalAuthentication(pendingLink.originalAuthentication(), request, response);
             throw exception;
@@ -151,5 +151,11 @@ public class Oauth2SecurityCustomizer {
 
     private String userAgent(HttpServletRequest request) {
         return Objects.requireNonNullElse(request.getHeader("User-Agent"), "");
+    }
+
+    private void redirectTo(@NonNull HttpServletRequest request,
+                            @NonNull HttpServletResponse response,
+                            @NonNull String path) throws java.io.IOException {
+        response.sendRedirect(request.getContextPath() + path);
     }
 }

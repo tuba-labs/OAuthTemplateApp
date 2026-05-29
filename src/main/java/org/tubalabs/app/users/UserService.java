@@ -6,20 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
-import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
-import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
-import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditLog;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
 
-import java.sql.Timestamp;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.UUID;
 
 @Slf4j
@@ -27,15 +21,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final Clock clock;
-
     private final UserRepository userRepository;
     private final UserIdentityRepository userIdentityRepository;
-    private final UserLoginRepository userLoginRepository;
 
     private final UserProfileService userProfileService;
-    private final EventLogService eventLogService;
-    private final UserIdentityEventFactory userIdentityEventFactory;
+    private final UserIdentityAuditLog userIdentityAuditLog;
 
     @Transactional
     public LoginResult login(ExternalIdentity externalIdentity, String clientIp, String userAgent) {
@@ -65,15 +55,7 @@ public class UserService {
                 userId,
                 externalIdentity);
 
-        userLoginRepository.insert(newLogin(
-                UUID.randomUUID(),
-                userId,
-                clock.instant(),
-                externalIdentity.providerId(),
-                externalIdentity.subject(),
-                clientIp,
-                userAgent));
-        eventLogService.record(userIdentityEventFactory.login(identity, clientIp, userAgent, false, true));
+        userIdentityAuditLog.recordLogin(identity, clientIp, userAgent, false, true);
 
         return LoginResult.builder()
                 .identityId(identity.id())
@@ -101,15 +83,7 @@ public class UserService {
 
         userIdentityRepository.update(updatedIdentity);
 
-        userLoginRepository.insert(newLogin(
-                UUID.randomUUID(),
-                localIdentity.userId(),
-                clock.instant(),
-                externalIdentity.providerId(),
-                externalIdentity.subject(),
-                clientIp,
-                userAgent));
-        eventLogService.record(userIdentityEventFactory.login(localIdentity, clientIp, userAgent, false, false));
+        userIdentityAuditLog.recordLogin(localIdentity, clientIp, userAgent, false, false);
 
         return LoginResult.builder()
                 .identityId(localIdentity.id())
@@ -133,26 +107,6 @@ public class UserService {
                 .displayName(externalIdentity.displayName())
                 .email(externalIdentity.email())
                 .pictureUrl(externalIdentity.avatarUrl())
-                .build();
-    }
-
-    private UserLoginDbo newLogin(
-            UUID loginId,
-            UUID userId,
-            Instant loginTime,
-            String providerId,
-            String subject,
-            String clientIp,
-            String userAgent) {
-
-        return UserLoginDbo.builder()
-                .id(loginId)
-                .userId(userId)
-                .loginTime(Timestamp.from(loginTime))
-                .providerId(providerId)
-                .subject(subject)
-                .clientIp(clientIp)
-                .userAgent(userAgent)
                 .build();
     }
 

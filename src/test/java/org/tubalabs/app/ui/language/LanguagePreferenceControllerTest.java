@@ -7,9 +7,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUserSession;
+import org.tubalabs.app.users.preferences.global.GlobalUserPreferences;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 import org.tubalabs.app.users.settings.UserLanguage;
-import org.tubalabs.app.users.settings.UserSettingsService;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,14 +29,14 @@ class LanguagePreferenceControllerTest {
     private static final String HOME_REDIRECT = "redirect:/";
 
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
-    private final UserSettingsService userSettingsService = Mockito.mock(UserSettingsService.class);
+    private final GlobalUserPreferences globalUserPreferences = Mockito.mock(GlobalUserPreferences.class);
     private final CurrentUserSession currentUserSession = Mockito.mock(CurrentUserSession.class);
     private final ProfileSetupRequirementService profileSetupRequirementService =
             Mockito.mock(ProfileSetupRequirementService.class);
     private final LanguagePreferenceController controller =
             new LanguagePreferenceController(
                     currentUserIdResolver,
-                    userSettingsService,
+                    globalUserPreferences,
                     currentUserSession,
                     profileSetupRequirementService);
     private final Authentication authentication =
@@ -52,7 +52,7 @@ class LanguagePreferenceControllerTest {
                 authentication, NORWEGIAN_LANGUAGE_TAG, Optional.of(PROFILE_RETURN_PATH), request);
 
         assertThat(view).isEqualTo("redirect:" + PROFILE_RETURN_PATH);
-        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.NORWEGIAN);
+        verify(globalUserPreferences).updateLanguage(USER_ID, UserLanguage.NORWEGIAN);
         verify(currentUserSession).refresh(request, USER_ID, true);
     }
 
@@ -65,7 +65,7 @@ class LanguagePreferenceControllerTest {
                 authentication, UNSUPPORTED_LANGUAGE_TAG, Optional.of(PROFILE_RETURN_PATH), request);
 
         assertThat(view).isEqualTo("redirect:" + PROFILE_RETURN_PATH);
-        verify(userSettingsService, never()).updateLanguage(Mockito.any(), Mockito.any());
+        verify(globalUserPreferences, never()).updateLanguage(Mockito.any(), Mockito.any());
         verify(currentUserSession, never()).refresh(Mockito.any(), Mockito.any(), Mockito.anyBoolean());
     }
 

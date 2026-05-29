@@ -11,8 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.RememberMeServices;
-import org.tubalabs.app.security.RememberLoginPromptService;
-import org.tubalabs.app.ui.rememberlogin.RememberLoginController;
+import org.tubalabs.app.security.remember.RememberLoginPromptService;
 import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 
@@ -54,7 +53,45 @@ class RememberLoginControllerTest {
                 Mockito.any(HttpServletResponse.class),
                 rememberedAuthentication.capture());
         assertThat(rememberedAuthentication.getValue().getName()).isEqualTo(IDENTITY_ID.toString());
-        verify(rememberLoginPromptService).clearSkip(USER_ID);
+        verify(rememberLoginPromptService).clearSkip(request, response);
+    }
+
+    @Test
+    void showsPromptWhenBrowserShouldBeAsked() {
+        final Authentication authentication = authentication();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        when(currentLoginIdentityResolver.identity(authentication)).thenReturn(Optional.of(identity()));
+        when(rememberLoginPromptService.shouldAsk(request)).thenReturn(true);
+
+        final String view = controller.rememberLogin(authentication, request);
+
+        assertThat(view).isEqualTo("ui/rememberlogin/remember-login");
+    }
+
+    @Test
+    void skipsPromptWhenBrowserSkipIsStillActive() {
+        final Authentication authentication = authentication();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        when(currentLoginIdentityResolver.identity(authentication)).thenReturn(Optional.of(identity()));
+        when(rememberLoginPromptService.shouldAsk(request)).thenReturn(false);
+
+        final String view = controller.rememberLogin(authentication, request);
+
+        assertThat(view).isEqualTo("redirect:/");
+    }
+
+    @Test
+    void skippingPromptStoresBrowserSkipAndClearsRememberMeCookie() {
+        final Authentication authentication = authentication();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockHttpServletResponse response = new MockHttpServletResponse();
+        when(currentLoginIdentityResolver.identity(authentication)).thenReturn(Optional.of(identity()));
+
+        final String view = controller.skipRememberLogin(authentication, request, response);
+
+        assertThat(view).isEqualTo("redirect:/");
+        verify(rememberLoginPromptService).rememberSkip(request, response);
+        verify(rememberMeServices).loginFail(request, response);
     }
 
     private Authentication authentication() {

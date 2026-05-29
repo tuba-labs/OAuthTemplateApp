@@ -10,5 +10,6 @@ public record UserProfileDbo(
         @NonNull UUID userId,
 
         String displayName,
-        String pictureUrl) {
+        String pictureUrl,
+        boolean profileComplete) {
 }

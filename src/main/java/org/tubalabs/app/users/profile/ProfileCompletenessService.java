@@ -19,7 +19,7 @@ public class ProfileCompletenessService {
     public boolean isProfileComplete(@NonNull UUID userId) {
         try {
             final UserProfileDbo profile = userProfileService.getProfile(userId);
-            return hasValidDisplayName(profile.displayName());
+            return profile.profileComplete() && hasValidDisplayName(profile.displayName());
         } catch (NoSuchElementException exception) {
             return false;
         }

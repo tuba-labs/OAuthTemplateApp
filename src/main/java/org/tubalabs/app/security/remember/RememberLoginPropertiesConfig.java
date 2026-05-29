@@ -1,4 +1,4 @@
-package org.tubalabs.app.security;
+package org.tubalabs.app.security.remember;
 
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,11 +19,13 @@ public class RememberLoginPropertiesConfig {
     @Bean
     RememberLoginProperties rememberLoginProperties(
             @Value("${app.security.remember-login.prompt-skip-duration}") String promptSkipDuration,
-            @Value("${app.security.remember-me.token-validity}") String tokenValidity) {
+            @Value("${app.security.remember-me.token-validity}") String tokenValidity,
+            @Value("${app.security.remember-me.key}") String rememberMeKey) {
 
         return new RememberLoginProperties(
                 parseDuration("app.security.remember-login.prompt-skip-duration", promptSkipDuration),
-                parseDuration("app.security.remember-me.token-validity", tokenValidity));
+                parseDuration("app.security.remember-me.token-validity", tokenValidity),
+                rememberMeKey);
     }
 
     private static Duration parseDuration(@NonNull String propertyName, @NonNull String rawValue) {

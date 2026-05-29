@@ -1,4 +1,4 @@
-package org.tubalabs.app.security;
+package org.tubalabs.app.security.remember;
 
 import lombok.NonNull;
 

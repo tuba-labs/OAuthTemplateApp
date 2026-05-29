@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUserSession;
+import org.tubalabs.app.users.preferences.global.GlobalUserPreferences;
 import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
 import org.tubalabs.app.users.settings.UserLanguage;
-import org.tubalabs.app.users.settings.UserSettingsService;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,7 +23,7 @@ public class LanguagePreferenceController {
     private static final String HOME_PATH = "/";
 
     private final @NonNull CurrentUserIdResolver currentUserIdResolver;
-    private final @NonNull UserSettingsService userSettingsService;
+    private final @NonNull GlobalUserPreferences globalUserPreferences;
     private final @NonNull CurrentUserSession currentUserSession;
     private final @NonNull ProfileSetupRequirementService profileSetupRequirementService;
 
@@ -34,7 +34,7 @@ public class LanguagePreferenceController {
                                  @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         UserLanguage.fromTag(languageTag).ifPresent(language -> {
-            userSettingsService.updateLanguage(userId, language);
+            globalUserPreferences.updateLanguage(userId, language);
             final boolean profileSetupRequired =
                     profileSetupRequirementService.isSetupRequiredForSession(request, userId);
             currentUserSession.refresh(request, userId, profileSetupRequired);

@@ -1,4 +1,4 @@
-package org.tubalabs.app.security;
+package org.tubalabs.app.security.remember;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

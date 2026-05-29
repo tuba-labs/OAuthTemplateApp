@@ -15,7 +15,8 @@ public record CurrentUser(
         boolean profileSetupRequired,
         String localLoginName,
         boolean localLoginLinkAvailable,
-        @NonNull String languageTag) implements Serializable {
+        @NonNull String languageTag,
+        boolean disableBackgroundAnimation) implements Serializable {
 
     public CurrentUser(@NonNull UUID userId,
                        String displayName,
@@ -30,7 +31,26 @@ public record CurrentUser(
                 profileSetupRequired,
                 localLoginName,
                 localLoginLinkAvailable,
-                UserLanguage.defaultTag());
+                UserLanguage.defaultTag(),
+                false);
+    }
+
+    public CurrentUser(@NonNull UUID userId,
+                       String displayName,
+                       String pictureUrl,
+                       boolean profileSetupRequired,
+                       String localLoginName,
+                       boolean localLoginLinkAvailable,
+                       @NonNull String languageTag) {
+        this(
+                userId,
+                displayName,
+                pictureUrl,
+                profileSetupRequired,
+                localLoginName,
+                localLoginLinkAvailable,
+                languageTag,
+                false);
     }
 
     public CurrentUser {

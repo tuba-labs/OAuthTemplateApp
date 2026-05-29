@@ -8,7 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.tubalabs.app.security.RememberedLoginName;
+import org.tubalabs.app.security.remember.RememberedLoginName;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 import org.tubalabs.app.users.identity.externalidentity.ExternalIdentity;

@@ -22,6 +22,7 @@ public class LoginController {
     private static final String LOGIN_VIEW = "ui/login/login";
     private static final String LOCAL_LOGIN_VIEW = "ui/login/login-local";
     private static final String LOCAL_LOGIN_PATH = "/login/local";
+    private static final String LOGIN_EMAIL_ATTRIBUTE = "loginEmail";
 
     private final List<LoginOptionDto> oauth2LoginOptions;
     private final LocalizationService localizationService;
@@ -44,12 +45,14 @@ public class LoginController {
     @GetMapping("/login/local")
     public String localLogin(Authentication authentication,
                              @RequestParam @NonNull Optional<String> error,
+                             @RequestParam @NonNull Optional<String> email,
                              @RequestParam @NonNull Optional<String> registered,
                              @NonNull Model model) {
         if (authenticated(authentication)) {
             return "redirect:/";
         }
         model.addAttribute("hasLoginError", error.isPresent());
+        email.ifPresent(loginEmail -> model.addAttribute(LOGIN_EMAIL_ATTRIBUTE, loginEmail));
         model.addAttribute("registrationComplete", registered.isPresent());
         return LOCAL_LOGIN_VIEW;
     }

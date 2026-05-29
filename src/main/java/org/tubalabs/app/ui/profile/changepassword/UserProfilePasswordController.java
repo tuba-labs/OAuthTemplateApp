@@ -18,10 +18,9 @@ import org.tubalabs.app.navigation.ui.AbstractNavigationController;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
-import org.tubalabs.app.users.current.CurrentUserSession;
+import org.tubalabs.app.users.current.CurrentUserRequestContext;
 import org.tubalabs.app.users.identity.password.LocalUserService;
-import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
-import org.tubalabs.app.users.profile.config.ProfileSetupSession;
+import org.tubalabs.app.users.preferences.global.ui.GlobalUserPreferencesPageModel;
 import org.tubalabs.app.ui.profile.changepassword.dtos.UserPasswordChangeDto;
 import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePage;
 
@@ -32,27 +31,23 @@ import java.util.UUID;
 public class UserProfilePasswordController extends AbstractNavigationController {
 
     private static final String PASSWORD_FORM_ATTRIBUTE = "passwordForm";
+    private static final String PASSWORD_ERROR_MESSAGE_ATTRIBUTE = "passwordErrorMessage";
     private static final String PASSWORD_SAVED_ATTRIBUTE = "passwordSaved";
 
     private final CurrentUserIdResolver currentUserIdResolver;
     private final LocalUserService localUserService;
-    private final ProfileSetupSession profileSetupSession;
     private final LocalizationService localizationService;
-    private final CurrentUserSession currentUserSession;
 
     public UserProfilePasswordController(@NonNull CurrentUserIdResolver currentUserIdResolver,
-                                         @NonNull CurrentUserSession currentUserSession,
-                                         @NonNull ProfileSetupRequirementService profileSetupRequirementService,
+                                         @NonNull CurrentUserRequestContext currentUserRequestContext,
                                          @NonNull NavigationPageModel navigationPageModel,
+                                         @NonNull GlobalUserPreferencesPageModel globalUserPreferencesPageModel,
                                          @NonNull LocalUserService localUserService,
-                                         @NonNull ProfileSetupSession profileSetupSession,
                                          @NonNull LocalizationService localizationService) {
-        super(currentUserIdResolver, currentUserSession, profileSetupRequirementService, navigationPageModel);
+        super(currentUserRequestContext, navigationPageModel, globalUserPreferencesPageModel);
         this.currentUserIdResolver = currentUserIdResolver;
         this.localUserService = localUserService;
-        this.profileSetupSession = profileSetupSession;
         this.localizationService = localizationService;
-        this.currentUserSession = currentUserSession;
     }
 
     @GetMapping(ProfileChangePasswordPage.RELATIVE_URL)
@@ -60,7 +55,7 @@ public class UserProfilePasswordController extends AbstractNavigationController 
                            @NonNull Model model,
                            @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
-        final CurrentUser currentUser = currentUser(userId, request);
+        final CurrentUser currentUser = currentUser(request, authentication);
         if (!currentUser.passwordChangeAvailable()) {
             throw new AccessDeniedException(
                     localizationService.message("profile.change-password.access.local-required"));
@@ -80,7 +75,7 @@ public class UserProfilePasswordController extends AbstractNavigationController 
                                  @NonNull RedirectAttributes redirectAttributes,
                                  @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
-        if (!currentUser(userId, request).passwordChangeAvailable()) {
+        if (!currentUser(request, authentication).passwordChangeAvailable()) {
             throw new AccessDeniedException(
                     localizationService.message("profile.change-password.access.local-required"));
         }
@@ -92,7 +87,7 @@ public class UserProfilePasswordController extends AbstractNavigationController 
                     localizationService.message("profile.change-password.error.password-mismatch"));
         }
         if (bindingResult.hasErrors()) {
-            return passwordViewWithErrors(model, passwordForm);
+            return passwordViewWithErrors(model, passwordForm, bindingResult);
         }
 
         try {
@@ -102,10 +97,10 @@ public class UserProfilePasswordController extends AbstractNavigationController 
                     "currentPassword",
                     "badCredentials",
                     localizationService.message("profile.change-password.error.bad-current-password"));
-            return passwordViewWithErrors(model, passwordForm);
+            return passwordViewWithErrors(model, passwordForm, bindingResult);
         } catch (IllegalArgumentException exception) {
             bindingResult.rejectValue("newPassword", "passwordRejected", exception.getMessage());
-            return passwordViewWithErrors(model, passwordForm);
+            return passwordViewWithErrors(model, passwordForm, bindingResult);
         }
 
         redirectAttributes.addFlashAttribute(PASSWORD_SAVED_ATTRIBUTE, true);
@@ -113,14 +108,14 @@ public class UserProfilePasswordController extends AbstractNavigationController 
     }
 
     private String passwordViewWithErrors(@NonNull Model model,
-                                          @NonNull UserPasswordChangeDto passwordForm) {
+                                          @NonNull UserPasswordChangeDto passwordForm,
+                                          @NonNull BindingResult bindingResult) {
         model.addAttribute(PASSWORD_FORM_ATTRIBUTE, passwordForm);
+        model.addAttribute(PASSWORD_ERROR_MESSAGE_ATTRIBUTE, passwordErrorMessage(bindingResult));
         return ProfileChangePasswordPage.VIEW;
     }
 
-    private CurrentUser currentUser(@NonNull UUID userId, @NonNull HttpServletRequest request) {
-        return currentUserSession.currentUser(request)
-                .orElseGet(() -> currentUserSession.refresh(
-                        request, userId, profileSetupSession.isProfileSetupRequired(request)));
+    private String passwordErrorMessage(@NonNull BindingResult bindingResult) {
+        return Objects.requireNonNullElse(bindingResult.getAllErrors().get(0).getDefaultMessage(), "");
     }
 }

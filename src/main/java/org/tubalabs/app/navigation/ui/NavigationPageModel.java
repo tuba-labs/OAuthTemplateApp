@@ -27,6 +27,10 @@ public class NavigationPageModel {
     }
 
     public NavigationMenuDto navigationMenu(@NonNull CurrentUser currentUser, @NonNull String currentPath) {
+        if (currentUser.profileSetupRequired()) {
+            return new NavigationMenuDto(List.of(), List.of());
+        }
+
         final Optional<NavigablePage> activePage = navigationCatalog.activePage(currentPath);
         final List<NavigationMenuItemDto> primaryItems = navigationCatalog.mainPages()
                 .stream()

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{navigation.page.profile.label}"></title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:if="${backgroundAnimationEnabled}" th:src="@{/js/ambient-dots.js}" defer></script>
     <script th:src="@{/js/navigation-state.js}"></script>
     <script th:src="@{/js/profile-picture.js}"></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
@@ -21,7 +22,7 @@
     <p class="message message-success" th:if="${profileSaved}" th:text="#{profile.message.saved}"></p>
     <p class="message message-success" th:if="${passwordSaved}" th:text="#{profile.change-password.message.saved}"></p>
 
-    <form id="profileForm" class="form" method="post" action="/profile" enctype="multipart/form-data" th:object="${profileForm}">
+    <form id="profileForm" class="form" method="post" th:action="@{/profile}" enctype="multipart/form-data" th:object="${profileForm}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
         <div class="field" th:if="${localProfile}">
@@ -66,6 +67,11 @@
                         th:text="${option.displayLabel()}"></option>
             </select>
             <span class="field-error" th:if="${#fields.hasErrors('languageTag')}" th:errors="*{languageTag}"></span>
+        </label>
+
+        <label class="checkbox-field">
+            <input type="checkbox" th:field="*{disableBackgroundAnimation}">
+            <span th:text="#{profile.background-animation.disable.label}"></span>
         </label>
     </form>
 

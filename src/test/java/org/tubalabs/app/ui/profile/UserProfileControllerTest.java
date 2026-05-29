@@ -24,6 +24,7 @@ import org.tubalabs.app.localization.LocalizationService;
 import org.tubalabs.app.navigation.ui.NavigationPageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
+import org.tubalabs.app.users.current.CurrentUserRequestContext;
 import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.CurrentLoginProviderResolver;
 import org.tubalabs.app.users.identity.LinkedLoginType;
@@ -35,6 +36,8 @@ import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSess
 import org.tubalabs.app.users.identity.externalidentity.IdentityLinkFailure;
 import org.tubalabs.app.users.identity.password.LocalUserRegistration;
 import org.tubalabs.app.users.identity.password.LocalUserService;
+import org.tubalabs.app.users.preferences.global.GlobalUserPreferences;
+import org.tubalabs.app.users.preferences.global.ui.GlobalUserPreferencesPageModel;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageFailure;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
@@ -44,7 +47,6 @@ import org.tubalabs.app.users.profile.UserProfileUpdate;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.settings.UserLanguage;
-import org.tubalabs.app.users.settings.UserSettingsService;
 import org.tubalabs.app.ui.profile.changepassword.UserProfilePasswordController;
 import org.tubalabs.app.ui.profile.logintypes.dtos.ProfileLinkedLoginTypeOptionDto;
 import org.tubalabs.app.ui.profile.logintypes.dtos.ProfileLoginTypeOptionDto;
@@ -86,6 +88,7 @@ class UserProfileControllerTest {
     private static final String LOCAL_LOGIN_TYPE_FORM_ATTRIBUTE = "localLoginTypeForm";
     private static final String PROFILE_PICTURE_ATTRIBUTE = "profilePictureUrl";
     private static final String PROFILE_SAVED_ATTRIBUTE = "profileSaved";
+    private static final String PASSWORD_ERROR_MESSAGE_ATTRIBUTE = "passwordErrorMessage";
     private static final String PASSWORD_SAVED_ATTRIBUTE = "passwordSaved";
     private static final String LOGIN_TYPE_LINKED_MESSAGE_ATTRIBUTE = "loginTypeLinkedMessage";
     private static final String LOGIN_TYPE_ERROR_MESSAGE_ATTRIBUTE = "loginTypeErrorMessage";
@@ -111,6 +114,7 @@ class UserProfileControllerTest {
                     GOOGLE_LABEL,
                     false,
                     false,
+                    false,
                     true,
                     "");
     private static final UUID USER_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
@@ -128,7 +132,7 @@ class UserProfileControllerTest {
     private final CurrentUserIdResolver currentUserIdResolver = Mockito.mock(CurrentUserIdResolver.class);
     private final CurrentLoginProviderResolver currentLoginProviderResolver = Mockito.mock(CurrentLoginProviderResolver.class);
     private final UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
-    private final UserSettingsService userSettingsService = Mockito.mock(UserSettingsService.class);
+    private final GlobalUserPreferences globalUserPreferences = Mockito.mock(GlobalUserPreferences.class);
     private final LocalUserService localUserService = Mockito.mock(LocalUserService.class);
     private final ProfileSetupSession profileSetupSession = Mockito.mock(ProfileSetupSession.class);
     private final ProfilePictureStorageService profilePictureStorageService = Mockito.mock(ProfilePictureStorageService.class);
@@ -138,7 +142,10 @@ class UserProfileControllerTest {
     private final CurrentUserSession currentUserSession = Mockito.mock(CurrentUserSession.class);
     private final ProfileSetupRequirementService profileSetupRequirementService =
             Mockito.mock(ProfileSetupRequirementService.class);
+    private final CurrentUserRequestContext currentUserRequestContext =
+            new CurrentUserRequestContext(currentUserIdResolver, currentUserSession, profileSetupRequirementService);
     private final NavigationPageModel navigationPageModel = Mockito.mock(NavigationPageModel.class);
+    private final GlobalUserPreferencesPageModel globalUserPreferencesPageModel = new GlobalUserPreferencesPageModel();
     private final LocalizationService localizationService = localizationService();
     private final ProfilePageModel profilePageModel = new ProfilePageModel(localizationService);
     private final ProfileLoginTypesPageModel profileLoginTypesPageModel =
@@ -150,30 +157,31 @@ class UserProfileControllerTest {
     private final UserProfileController profileController =
             new UserProfileController(
                     currentUserIdResolver,
+                    currentUserRequestContext,
                     currentUserSession,
-                    profileSetupRequirementService,
                     navigationPageModel,
+                    globalUserPreferencesPageModel,
                     userProfileService,
                     profileSetupSession,
                     profilePictureStorageService,
                     profilePageModel,
                     localizationService,
-                    userSettingsService);
+                    globalUserPreferences);
     private final UserProfilePasswordController passwordController =
             new UserProfilePasswordController(
                     currentUserIdResolver,
-                    currentUserSession,
-                    profileSetupRequirementService,
+                    currentUserRequestContext,
                     navigationPageModel,
+                    globalUserPreferencesPageModel,
                     localUserService,
-                    profileSetupSession,
                     localizationService);
     private final UserProfileLoginTypesController loginTypesController =
             new UserProfileLoginTypesController(
                     currentUserIdResolver,
+                    currentUserRequestContext,
                     currentUserSession,
-                    profileSetupRequirementService,
                     navigationPageModel,
+                    globalUserPreferencesPageModel,
                     currentLoginProviderResolver,
                     localUserService,
                     profileSetupSession,
@@ -225,7 +233,7 @@ class UserProfileControllerTest {
         assertThat(model.getAttribute(PROFILE_PICTURE_ATTRIBUTE)).isEqualTo(PICTURE_URL);
         assertThat(model.containsAttribute(LANGUAGE_OPTIONS_ATTRIBUTE)).isTrue();
         assertThat(model.getAttribute(PROFILE_FORM_ATTRIBUTE))
-                .isEqualTo(new UserProfileUpdateDto(DISPLAY_NAME, PICTURE_URL));
+                .isEqualTo(new UserProfileUpdateDto(DISPLAY_NAME, PICTURE_URL, ENGLISH_LANGUAGE_TAG, false));
     }
 
     @Test
@@ -325,6 +333,7 @@ class UserProfileControllerTest {
                         LoginTypeUnlinkState.CURRENT_LOGIN)));
         final Model model = new ExtendedModelMap();
         final MockHttpServletRequest request = new MockHttpServletRequest();
+        when(currentUserSession.currentUser(request)).thenReturn(Optional.of(localCurrentUser()));
 
         final String view = loginTypesController.loginTypes(authentication, model, request);
 
@@ -335,6 +344,7 @@ class UserProfileControllerTest {
                 .satisfies(option -> {
                     assertThat(option.localLoginType()).isTrue();
                     assertThat(option.label()).isEqualTo(NORWEGIAN_LOCAL_LOGIN_TYPE_LABEL);
+                    assertThat(option.passwordChangeAvailable()).isTrue();
                 });
     }
 
@@ -384,7 +394,8 @@ class UserProfileControllerTest {
     void updatesCurrentProfileAndKeepsCurrentPictureWhenNoPictureIsUploaded() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
-        final UserProfileUpdateDto profileForm = new UserProfileUpdateDto(DISPLAY_NAME, null);
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, ENGLISH_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
@@ -397,14 +408,16 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         assertThat(redirectAttributes.getFlashAttributes().get(PROFILE_SAVED_ATTRIBUTE)).isEqualTo(Boolean.TRUE);
         verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, PICTURE_URL));
-        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.ENGLISH);
+        verify(globalUserPreferences).updateLanguage(USER_ID, UserLanguage.ENGLISH);
+        verify(globalUserPreferences).updateDisableBackgroundAnimation(USER_ID, false);
     }
 
     @Test
     void updatesCurrentProfileWithUploadedPictureUrl() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
-        final UserProfileUpdateDto profileForm = new UserProfileUpdateDto(DISPLAY_NAME, null);
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, ENGLISH_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
@@ -417,7 +430,8 @@ class UserProfileControllerTest {
 
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
         verify(userProfileService).updateProfile(USER_ID, new UserProfileUpdate(DISPLAY_NAME, UPLOADED_PICTURE_URL));
-        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.ENGLISH);
+        verify(globalUserPreferences).updateLanguage(USER_ID, UserLanguage.ENGLISH);
+        verify(globalUserPreferences).updateDisableBackgroundAnimation(USER_ID, false);
     }
 
     @Test
@@ -425,7 +439,7 @@ class UserProfileControllerTest {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
         final UserProfileUpdateDto profileForm =
-                new UserProfileUpdateDto(DISPLAY_NAME, null, NORWEGIAN_LANGUAGE_TAG);
+                new UserProfileUpdateDto(DISPLAY_NAME, null, NORWEGIAN_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
@@ -436,14 +450,35 @@ class UserProfileControllerTest {
                 authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
 
         assertThat(view).isEqualTo(PROFILE_REDIRECT);
-        verify(userSettingsService).updateLanguage(USER_ID, UserLanguage.NORWEGIAN);
+        verify(globalUserPreferences).updateLanguage(USER_ID, UserLanguage.NORWEGIAN);
+        verify(globalUserPreferences).updateDisableBackgroundAnimation(USER_ID, false);
+    }
+
+    @Test
+    void updatesBackgroundAnimationPreference() {
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, ENGLISH_LANGUAGE_TAG, true);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
+        final Model model = new ExtendedModelMap();
+        final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final MockMultipartFile pictureFile = emptyPictureFile();
+
+        final String view = profileController.updateProfile(
+                authentication, profileForm, bindingResult, model, redirectAttributes, request, pictureFile);
+
+        assertThat(view).isEqualTo(PROFILE_REDIRECT);
+        verify(globalUserPreferences).updateDisableBackgroundAnimation(USER_ID, true);
     }
 
     @Test
     void doesNotUpdateWhenPictureUploadFails() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
-        final UserProfileUpdateDto profileForm = new UserProfileUpdateDto(DISPLAY_NAME, null);
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, ENGLISH_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
@@ -466,7 +501,8 @@ class UserProfileControllerTest {
     void redirectsToRememberLoginAfterRequiredProfileSetup() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
-        final UserProfileUpdateDto profileForm = new UserProfileUpdateDto(DISPLAY_NAME, null);
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto(DISPLAY_NAME, null, ENGLISH_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         final Model model = new ExtendedModelMap();
         final RedirectAttributes redirectAttributes = new RedirectAttributesModelMap();
@@ -486,7 +522,8 @@ class UserProfileControllerTest {
     void doesNotUpdateWhenFormHasErrors() {
         when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
         when(userProfileService.getProfile(USER_ID)).thenReturn(profile());
-        final UserProfileUpdateDto profileForm = new UserProfileUpdateDto("", PICTURE_URL);
+        final UserProfileUpdateDto profileForm =
+                new UserProfileUpdateDto("", PICTURE_URL, ENGLISH_LANGUAGE_TAG, false);
         final BindingResult bindingResult = new BeanPropertyBindingResult(profileForm, PROFILE_FORM_ATTRIBUTE);
         bindingResult.rejectValue("displayName", "NotBlank", "Display name is required");
         final Model model = new ExtendedModelMap();
@@ -537,6 +574,7 @@ class UserProfileControllerTest {
         assertThat(view).isEqualTo(PROFILE_PASSWORD_VIEW);
         assertThat(bindingResult.getFieldError("newPasswordConfirmation").getDefaultMessage())
                 .isEqualTo(PASSWORD_MISMATCH_MESSAGE);
+        assertThat(model.getAttribute(PASSWORD_ERROR_MESSAGE_ATTRIBUTE)).isEqualTo(PASSWORD_MISMATCH_MESSAGE);
         verify(localUserService, never()).changePassword(Mockito.any(), Mockito.any(), Mockito.any());
     }
 

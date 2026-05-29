@@ -4,26 +4,18 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
-import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
-import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
-import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditLog;
 
-import java.sql.Timestamp;
-import java.time.Clock;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ExternalIdentityLinkService {
 
-    private final Clock clock;
     private final UserIdentityRepository userIdentityRepository;
-    private final UserLoginRepository userLoginRepository;
-    private final EventLogService eventLogService;
-    private final UserIdentityEventFactory userIdentityEventFactory;
+    private final UserIdentityAuditLog userIdentityAuditLog;
 
     @Transactional
     public void link(@NonNull UUID userId,
@@ -41,8 +33,8 @@ public class ExternalIdentityLinkService {
         }
 
         final UserIdentityDbo identity = userIdentityRepository.insert(newIdentity(userId, externalIdentity));
-        insertLogin(userId, externalIdentity, clientIp, userAgent);
-        eventLogService.record(userIdentityEventFactory.signInMethodLinked(identity, clientIp, userAgent));
+        userIdentityAuditLog.recordLoginRow(identity, clientIp, userAgent);
+        userIdentityAuditLog.recordSignInMethodLinked(identity, clientIp, userAgent);
     }
 
     private UserIdentityDbo newIdentity(@NonNull UUID userId, @NonNull ExternalIdentity externalIdentity) {
@@ -57,18 +49,4 @@ public class ExternalIdentityLinkService {
                 .build();
     }
 
-    private void insertLogin(@NonNull UUID userId,
-                             @NonNull ExternalIdentity externalIdentity,
-                             @NonNull String clientIp,
-                             @NonNull String userAgent) {
-        userLoginRepository.insert(UserLoginDbo.builder()
-                .id(UUID.randomUUID())
-                .userId(userId)
-                .loginTime(Timestamp.from(clock.instant()))
-                .providerId(externalIdentity.providerId())
-                .subject(externalIdentity.subject())
-                .clientIp(clientIp)
-                .userAgent(userAgent)
-                .build());
-    }
 }

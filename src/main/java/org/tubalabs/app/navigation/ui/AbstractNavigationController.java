@@ -2,59 +2,43 @@ package org.tubalabs.app.navigation.ui;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.NonNull;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
-import org.tubalabs.app.users.current.CurrentUserSession;
-import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
-
-import java.util.UUID;
+import org.tubalabs.app.users.current.CurrentUserRequestContext;
+import org.tubalabs.app.users.preferences.global.ui.GlobalUserPreferencesPageModel;
 
 public abstract class AbstractNavigationController {
 
-    private final @NonNull CurrentUserIdResolver currentUserIdResolver;
-    private final @NonNull CurrentUserSession currentUserSession;
-    private final @NonNull ProfileSetupRequirementService profileSetupRequirementService;
+    private final @NonNull CurrentUserRequestContext currentUserRequestContext;
     private final @NonNull NavigationPageModel navigationPageModel;
+    private final @NonNull GlobalUserPreferencesPageModel globalUserPreferencesPageModel;
 
-    protected AbstractNavigationController(@NonNull CurrentUserIdResolver currentUserIdResolver,
-                                           @NonNull CurrentUserSession currentUserSession,
-                                           @NonNull ProfileSetupRequirementService profileSetupRequirementService,
-                                           @NonNull NavigationPageModel navigationPageModel) {
-        this.currentUserIdResolver = currentUserIdResolver;
-        this.currentUserSession = currentUserSession;
-        this.profileSetupRequirementService = profileSetupRequirementService;
+    protected AbstractNavigationController(@NonNull CurrentUserRequestContext currentUserRequestContext,
+                                           @NonNull NavigationPageModel navigationPageModel,
+                                           @NonNull GlobalUserPreferencesPageModel globalUserPreferencesPageModel) {
+        this.currentUserRequestContext = currentUserRequestContext;
         this.navigationPageModel = navigationPageModel;
+        this.globalUserPreferencesPageModel = globalUserPreferencesPageModel;
     }
 
     @ModelAttribute
     public void addAuthenticatedNavigation(@NonNull Model model,
                                            @NonNull HttpServletRequest request,
                                            Authentication authentication) {
-        if (!authenticated(authentication)) {
+        if (!currentUserRequestContext.authenticated(authentication)) {
             return;
         }
 
-        final CurrentUser currentUser = currentUserSession.currentUser(request)
-                .orElseGet(() -> loadCurrentUser(request, authentication));
+        final CurrentUser currentUser = currentUser(request, authentication);
+        globalUserPreferencesPageModel.addGlobalPreferences(model, currentUser);
         model.addAttribute("authenticatedNavigationMenu",
                 navigationPageModel.navigationMenu(currentUser, currentPath(request)));
     }
 
-    private CurrentUser loadCurrentUser(@NonNull HttpServletRequest request,
-                                        @NonNull Authentication authentication) {
-        final UUID userId = currentUserIdResolver.requireUserId(authentication);
-        final boolean profileSetupRequired = profileSetupRequirementService.isSetupRequiredForSession(request, userId);
-        return currentUserSession.refresh(request, userId, profileSetupRequired);
-    }
-
-    private boolean authenticated(Authentication authentication) {
-        return authentication != null
-                && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken);
+    protected CurrentUser currentUser(@NonNull HttpServletRequest request, @NonNull Authentication authentication) {
+        return currentUserRequestContext.currentUser(request, authentication);
     }
 
     private String currentPath(@NonNull HttpServletRequest request) {

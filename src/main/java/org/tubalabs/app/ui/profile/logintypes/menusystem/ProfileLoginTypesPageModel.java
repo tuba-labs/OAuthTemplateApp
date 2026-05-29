@@ -74,6 +74,7 @@ public class ProfileLoginTypesPageModel {
                         loginType.providerId(),
                         label(loginType.providerId()),
                         localLoginType(loginType.providerId()),
+                        passwordChangeAvailable(currentUser, loginType.providerId()),
                         loginType.current(),
                         !currentUser.profileSetupRequired() && loginType.unlinkAvailable(),
                         localizationService.message(loginType.unlinkState())))
@@ -93,5 +94,9 @@ public class ProfileLoginTypesPageModel {
 
     private boolean localLoginType(String providerId) {
         return LocalUserService.LOCAL_PROVIDER_ID.equals(providerId);
+    }
+
+    private boolean passwordChangeAvailable(@NonNull CurrentUser currentUser, @NonNull String providerId) {
+        return localLoginType(providerId) && currentUser.passwordChangeAvailable();
     }
 }

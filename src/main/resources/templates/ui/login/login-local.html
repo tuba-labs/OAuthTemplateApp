@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="#{login.local.title}">Email and password sign in</title>
     <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/ambient-dots.js}" defer></script>
     <script th:src="@{/js/language-selector.js}" defer></script>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
@@ -31,12 +32,12 @@
     <p class="message message-error" th:if="${hasLoginError}" th:text="#{login.local.error.invalid-credentials}"></p>
     <p class="message message-success" th:if="${registrationComplete}" th:text="#{login.local.message.registration-complete}"></p>
 
-    <form class="form" method="post" action="/login/local">
+    <form class="form" method="post" th:action="@{/login/local}">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
         <label class="field">
             <span th:text="#{login.local.email.label}">Email</span>
-            <input name="email" type="email" autocomplete="email" required maxlength="320">
+            <input name="email" type="email" autocomplete="email" required maxlength="320" th:value="${loginEmail}">
         </label>
         <label class="field">
             <span th:text="#{login.local.password.label}">Password</span>

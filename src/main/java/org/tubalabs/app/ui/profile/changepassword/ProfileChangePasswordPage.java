@@ -19,7 +19,7 @@ public final class ProfileChangePasswordPage implements NavigationPageRegistrati
     private static final PageAvailability AVAILABLE = CurrentUser::passwordChangeAvailable;
     private static final PageModel MODEL = new PageModel(new PageText(
             "navigation.page.profile.change-password.label",
-            "navigation.page.profile.change-password.tooltip"), RELATIVE_URL, AVAILABLE);
+            "navigation.page.profile.change-password.tooltip"), RELATIVE_URL, false, AVAILABLE);
 
     @Override
     public @NonNull PageModel model() {

@@ -11,14 +11,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.identity.UserIdentityAlreadyExistsException;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
-import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
-import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
-import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditLog;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialRepository;
@@ -28,9 +25,6 @@ import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
 
-import java.sql.Timestamp;
-import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,17 +37,14 @@ public class LocalUserService {
 
     public static final String LOCAL_PROVIDER_ID = "local";
 
-    private final Clock clock;
     private final PasswordEncoder passwordEncoder;
     private final LocalEmailNormalizer emailNormalizer;
     private final UserRepository userRepository;
     private final UserIdentityRepository userIdentityRepository;
-    private final UserLoginRepository userLoginRepository;
     private final UserProfileService userProfileService;
     private final UserPasswordCredentialRepository userPasswordCredentialRepository;
     private final UserCreateVetoerService userCreateVetoerService;
-    private final EventLogService eventLogService;
-    private final UserIdentityEventFactory userIdentityEventFactory;
+    private final UserIdentityAuditLog userIdentityAuditLog;
 
     @Transactional
     public CreateResult register(@Valid @NonNull LocalUserRegistration registration) {
@@ -113,7 +104,7 @@ public class LocalUserService {
 
         final UserIdentityDbo identity = insertLocalIdentity(UUID.randomUUID(), userId, normalizedEmail);
         insertPasswordCredential(userId, normalizedEmail, registration.password());
-        eventLogService.record(userIdentityEventFactory.signInMethodLinked(identity, clientIp, userAgent));
+        userIdentityAuditLog.recordSignInMethodLinked(identity, clientIp, userAgent);
     }
 
     @Transactional
@@ -161,15 +152,7 @@ public class LocalUserService {
         @Cleanup
         MDC.MDCCloseable ignore = MDC.putCloseable("userId", identity.userId().toString());
 
-        userLoginRepository.insert(newLogin(
-                UUID.randomUUID(),
-                identity.userId(),
-                clock.instant(),
-                LOCAL_PROVIDER_ID,
-                normalizedEmail,
-                clientIp,
-                userAgent));
-        eventLogService.record(userIdentityEventFactory.login(identity, clientIp, userAgent, false, false));
+        userIdentityAuditLog.recordLogin(identity, clientIp, userAgent, false, false);
 
         return LoginResult.builder()
                 .identityId(identity.id())
@@ -211,23 +194,4 @@ public class LocalUserService {
         }
     }
 
-    private UserLoginDbo newLogin(
-            UUID loginId,
-            UUID userId,
-            Instant loginTime,
-            String providerId,
-            String subject,
-            String clientIp,
-            String userAgent) {
-
-        return UserLoginDbo.builder()
-                .id(loginId)
-                .userId(userId)
-                .loginTime(Timestamp.from(loginTime))
-                .providerId(providerId)
-                .subject(subject)
-                .clientIp(clientIp)
-                .userAgent(userAgent)
-                .build();
-    }
 }

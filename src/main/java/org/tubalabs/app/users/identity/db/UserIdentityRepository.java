@@ -76,6 +76,8 @@ public class UserIdentityRepository {
         final LinkedHashMap<String, Object> parameters = sqlRecordIntrospector.paramsFromRecord(TABLE_NAME, dbo, Set.of());
         final LinkedHashMap<String, Object> updateParameters = sqlRecordIntrospector.paramsFromRecord(TABLE_NAME, dbo, Set.of("id"));
         return jdbcClient.sql(sqlRecordIntrospector.updateWithoutWhere(TABLE_NAME, updateParameters)
+                        + SqlRecordIntrospector.SQL_COLUMN_SEPARATOR
+                        + "modified = CURRENT_TIMESTAMP\n"
                         + "WHERE id = :id\n"
                         + sqlRecordIntrospector.returning(parameters.keySet()))
                 .params(parameters)

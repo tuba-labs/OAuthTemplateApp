@@ -30,6 +30,15 @@
         return select.value || "en";
     }
 
+    function urlSelectedLanguage(select) {
+        var url = new URL(window.location.href);
+        var languageTag = url.searchParams.get(languageParameter);
+        if (languageTag && optionExists(select, languageTag)) {
+            return languageTag;
+        }
+        return null;
+    }
+
     function redirectWithLanguage(languageTag) {
         var nextUrl = new URL(window.location.href);
         nextUrl.searchParams.set(languageParameter, languageTag);
@@ -38,6 +47,13 @@
 
     function localStorageLanguage(select) {
         var currentLanguage = currentSelectedLanguage(select);
+        var requestedLanguage = urlSelectedLanguage(select);
+        if (requestedLanguage) {
+            writeStoredLanguage(requestedLanguage);
+            select.value = requestedLanguage;
+            return;
+        }
+
         var storedLanguage = readStoredLanguage();
         if (!storedLanguage || !optionExists(select, storedLanguage)) {
             storedLanguage = currentLanguage;

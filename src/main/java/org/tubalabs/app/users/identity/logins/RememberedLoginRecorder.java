@@ -14,28 +14,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.tubalabs.app.events.EventLogService;
 import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
-import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
-import org.tubalabs.app.users.identity.logins.db.UserLoginDbo;
-import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 
-import java.sql.Timestamp;
-import java.time.Clock;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RememberedLoginRecorder {
 
-    private final Clock clock;
     private final CurrentLoginIdentityResolver currentLoginIdentityResolver;
-    private final UserLoginRepository userLoginRepository;
-    private final EventLogService eventLogService;
-    private final UserIdentityEventFactory userIdentityEventFactory;
+    private final UserIdentityAuditLog userIdentityAuditLog;
 
     @EventListener
     public void recordRememberedLogin(@NonNull InteractiveAuthenticationSuccessEvent event) {
@@ -55,25 +45,12 @@ public class RememberedLoginRecorder {
         final String clientIp = clientIp(request, authentication);
         final String userAgent = userAgent(request);
 
-        userLoginRepository.insert(newLogin(resolvedIdentity, clientIp, userAgent));
-        eventLogService.record(userIdentityEventFactory.login(resolvedIdentity, clientIp, userAgent, true, false));
+        userIdentityAuditLog.recordLogin(resolvedIdentity, clientIp, userAgent, true, false);
     }
 
     private boolean isRememberMeAutoLogin(InteractiveAuthenticationSuccessEvent event) {
         return RememberMeAuthenticationFilter.class.equals(event.getGeneratedBy())
                 && event.getAuthentication() instanceof RememberMeAuthenticationToken;
-    }
-
-    private UserLoginDbo newLogin(UserIdentityDbo identity, String clientIp, String userAgent) {
-        return UserLoginDbo.builder()
-                .id(UUID.randomUUID())
-                .userId(identity.userId())
-                .loginTime(Timestamp.from(clock.instant()))
-                .providerId(identity.providerId())
-                .subject(identity.subject())
-                .clientIp(clientIp)
-                .userAgent(userAgent)
-                .build();
     }
 
     private Optional<HttpServletRequest> currentRequest() {

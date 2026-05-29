@@ -14,8 +14,8 @@ import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.tubalabs.app.security.RememberedLoginName;
-import org.tubalabs.app.security.RememberLoginPromptService;
+import org.tubalabs.app.security.remember.RememberedLoginName;
+import org.tubalabs.app.security.remember.RememberLoginPromptService;
 import org.tubalabs.app.users.identity.CurrentLoginIdentityResolver;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 
@@ -31,12 +31,13 @@ public class RememberLoginController {
     private final RememberMeServices rememberMeServices;
 
     @GetMapping("/remember-login")
-    public String rememberLogin(@NonNull Authentication authentication) {
+    public String rememberLogin(@NonNull Authentication authentication,
+                                @NonNull HttpServletRequest request) {
         if (authentication instanceof RememberMeAuthenticationToken) {
             return HOME_REDIRECT;
         }
-        final UserIdentityDbo identity = requireCurrentIdentity(authentication);
-        if (!rememberLoginPromptService.shouldAsk(identity.userId())) {
+        requireCurrentIdentity(authentication);
+        if (!rememberLoginPromptService.shouldAsk(request)) {
             return HOME_REDIRECT;
         }
         return REMEMBER_LOGIN_VIEW;
@@ -48,7 +49,7 @@ public class RememberLoginController {
                                 @NonNull HttpServletResponse response) {
         final UserIdentityDbo identity = requireCurrentIdentity(authentication);
         rememberMeServices.loginSuccess(request, response, rememberMeAuthentication(identity, authentication));
-        rememberLoginPromptService.clearSkip(identity.userId());
+        rememberLoginPromptService.clearSkip(request, response);
         return HOME_REDIRECT;
     }
 
@@ -56,8 +57,8 @@ public class RememberLoginController {
     public String skipRememberLogin(@NonNull Authentication authentication,
                                     @NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response) {
-        final UserIdentityDbo identity = requireCurrentIdentity(authentication);
-        rememberLoginPromptService.rememberSkip(identity.userId());
+        requireCurrentIdentity(authentication);
+        rememberLoginPromptService.rememberSkip(request, response);
         rememberMeServices.loginFail(request, response);
         return HOME_REDIRECT;
     }

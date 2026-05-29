@@ -20,6 +20,7 @@ import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPage;
 import org.tubalabs.app.ui.profile.logintypes.menusystem.ProfileLoginTypesPageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
+import org.tubalabs.app.users.current.CurrentUserRequestContext;
 import org.tubalabs.app.users.current.CurrentUserSession;
 import org.tubalabs.app.users.identity.CurrentLoginProviderResolver;
 import org.tubalabs.app.users.identity.LoginTypeUnlinkException;
@@ -28,7 +29,7 @@ import org.tubalabs.app.users.identity.externalidentity.ExternalIdentityLinkSess
 import org.tubalabs.app.users.identity.password.LocalUserAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.LocalUserRegistration;
 import org.tubalabs.app.users.identity.password.LocalUserService;
-import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
+import org.tubalabs.app.users.preferences.global.ui.GlobalUserPreferencesPageModel;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
 import org.tubalabs.app.ui.profile.logintypes.dtos.UserLocalLoginTypeLinkDto;
 import org.tubalabs.app.ui.profile.logintypes.local.ProfileLocalLoginTypePage;
@@ -54,9 +55,10 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
     private final CurrentUserSession currentUserSession;
 
     public UserProfileLoginTypesController(@NonNull CurrentUserIdResolver currentUserIdResolver,
+                                           @NonNull CurrentUserRequestContext currentUserRequestContext,
                                            @NonNull CurrentUserSession currentUserSession,
-                                           @NonNull ProfileSetupRequirementService profileSetupRequirementService,
                                            @NonNull NavigationPageModel navigationPageModel,
+                                           @NonNull GlobalUserPreferencesPageModel globalUserPreferencesPageModel,
                                            @NonNull CurrentLoginProviderResolver currentLoginProviderResolver,
                                            @NonNull LocalUserService localUserService,
                                            @NonNull ProfileSetupSession profileSetupSession,
@@ -64,7 +66,7 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                                            @NonNull ExternalIdentityLinkSession externalIdentityLinkSession,
                                            @NonNull ProfileLoginTypesPageModel profileLoginTypesPageModel,
                                            @NonNull LocalizationService localizationService) {
-        super(currentUserIdResolver, currentUserSession, profileSetupRequirementService, navigationPageModel);
+        super(currentUserRequestContext, navigationPageModel, globalUserPreferencesPageModel);
         this.currentUserIdResolver = currentUserIdResolver;
         this.currentLoginProviderResolver = currentLoginProviderResolver;
         this.localUserService = localUserService;
@@ -81,7 +83,7 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
                              @NonNull Model model,
                              @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
-        final CurrentUser currentUser = currentUser(userId, request);
+        final CurrentUser currentUser = currentUser(request, authentication);
         profileLoginTypesPageModel.addLoginTypeAttributes(
                 model, currentUser, request, currentLoginProviderResolver.providerId(authentication, request));
         return ProfileLoginTypesPage.VIEW;
@@ -213,12 +215,6 @@ public class UserProfileLoginTypesController extends AbstractNavigationControlle
         if (profileSetupSession.isProfileSetupRequired(request)) {
             throw new AccessDeniedException(message);
         }
-    }
-
-    private CurrentUser currentUser(@NonNull UUID userId, @NonNull HttpServletRequest request) {
-        return currentUserSession.currentUser(request)
-                .orElseGet(() -> currentUserSession.refresh(
-                        request, userId, profileSetupSession.isProfileSetupRequired(request)));
     }
 
     private String clientIp(@NonNull HttpServletRequest request) {

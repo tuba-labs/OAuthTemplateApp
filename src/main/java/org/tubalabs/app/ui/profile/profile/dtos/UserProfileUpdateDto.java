@@ -2,7 +2,6 @@ package org.tubalabs.app.ui.profile.profile.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.tubalabs.app.users.settings.UserLanguage;
 import org.tubalabs.app.users.profile.validation.ValidDisplayName;
 
 import static org.tubalabs.app.users.profile.UserProfileConstraints.DISPLAY_NAME_MAX_LENGTH;
@@ -16,11 +15,8 @@ public record UserProfileUpdateDto(
         @Size(max = 2000, message = "{validation.profile.picture-url.max-length}")
         String pictureUrl,
         @NotBlank(message = "{validation.profile.language.required}")
-        String languageTag) {
-
-    public UserProfileUpdateDto(String displayName, String pictureUrl) {
-        this(displayName, pictureUrl, UserLanguage.defaultTag());
-    }
+        String languageTag,
+        boolean disableBackgroundAnimation) {
 
     public UserProfileUpdateDto {
         displayName = requiredTrimmed(displayName);

@@ -43,6 +43,7 @@ public class UserProfileService {
                 .userId(userId)
                 .displayName(initialDisplayName(displayName))
                 .pictureUrl(pictureUrl)
+                .profileComplete(false)
                 .build();
         return userProfileRepository.insert(profile);
     }
@@ -59,6 +60,7 @@ public class UserProfileService {
                 .userId(userId)
                 .displayName(update.displayName())
                 .pictureUrl(update.pictureUrl())
+                .profileComplete(true)
                 .build();
         return userProfileRepository.update(profile);
     }

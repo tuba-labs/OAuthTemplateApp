@@ -20,8 +20,10 @@ import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePage;
 import org.tubalabs.app.ui.profile.profile.menusystem.ProfilePageModel;
 import org.tubalabs.app.users.CurrentUserIdResolver;
 import org.tubalabs.app.users.current.CurrentUser;
+import org.tubalabs.app.users.current.CurrentUserRequestContext;
 import org.tubalabs.app.users.current.CurrentUserSession;
-import org.tubalabs.app.users.profile.ProfileSetupRequirementService;
+import org.tubalabs.app.users.preferences.global.GlobalUserPreferences;
+import org.tubalabs.app.users.preferences.global.ui.GlobalUserPreferencesPageModel;
 import org.tubalabs.app.users.profile.UserProfileUpdate;
 import org.tubalabs.app.users.profile.UserProfileService;
 import org.tubalabs.app.users.profile.config.ProfileSetupSession;
@@ -29,7 +31,6 @@ import org.tubalabs.app.users.profile.db.UserProfileDbo;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageException;
 import org.tubalabs.app.users.profile.profilepicture.ProfilePictureStorageService;
 import org.tubalabs.app.users.settings.UserLanguage;
-import org.tubalabs.app.users.settings.UserSettingsService;
 import org.tubalabs.app.ui.profile.profile.dtos.UserProfileUpdateDto;
 
 import java.util.Optional;
@@ -48,27 +49,28 @@ public class UserProfileController extends AbstractNavigationController {
     private final ProfilePictureStorageService profilePictureStorageService;
     private final ProfilePageModel profilePageModel;
     private final LocalizationService localizationService;
-    private final UserSettingsService userSettingsService;
+    private final GlobalUserPreferences globalUserPreferences;
     private final CurrentUserSession currentUserSession;
 
     public UserProfileController(@NonNull CurrentUserIdResolver currentUserIdResolver,
+                                 @NonNull CurrentUserRequestContext currentUserRequestContext,
                                  @NonNull CurrentUserSession currentUserSession,
-                                 @NonNull ProfileSetupRequirementService profileSetupRequirementService,
                                  @NonNull NavigationPageModel navigationPageModel,
+                                 @NonNull GlobalUserPreferencesPageModel globalUserPreferencesPageModel,
                                  @NonNull UserProfileService userProfileService,
                                  @NonNull ProfileSetupSession profileSetupSession,
                                  @NonNull ProfilePictureStorageService profilePictureStorageService,
                                  @NonNull ProfilePageModel profilePageModel,
                                  @NonNull LocalizationService localizationService,
-                                 @NonNull UserSettingsService userSettingsService) {
-        super(currentUserIdResolver, currentUserSession, profileSetupRequirementService, navigationPageModel);
+                                 @NonNull GlobalUserPreferences globalUserPreferences) {
+        super(currentUserRequestContext, navigationPageModel, globalUserPreferencesPageModel);
         this.currentUserIdResolver = currentUserIdResolver;
         this.userProfileService = userProfileService;
         this.profileSetupSession = profileSetupSession;
         this.profilePictureStorageService = profilePictureStorageService;
         this.profilePageModel = profilePageModel;
         this.localizationService = localizationService;
-        this.userSettingsService = userSettingsService;
+        this.globalUserPreferences = globalUserPreferences;
         this.currentUserSession = currentUserSession;
     }
 
@@ -78,7 +80,7 @@ public class UserProfileController extends AbstractNavigationController {
                           @NonNull HttpServletRequest request) {
         final UUID userId = currentUserIdResolver.requireUserId(authentication);
         final UserProfileDbo profile = userProfileService.getProfile(userId);
-        final CurrentUser currentUser = currentUser(userId, request);
+        final CurrentUser currentUser = currentUser(request, authentication);
         addProfileFormIfMissing(model, profile, currentUser);
         profilePageModel.addProfileAttributes(model, currentUser, profile);
         return ProfilePage.VIEW;
@@ -103,7 +105,7 @@ public class UserProfileController extends AbstractNavigationController {
         }
 
         if (bindingResult.hasErrors()) {
-            profilePageModel.addProfileAttributes(model, currentUser(userId, request), currentProfile);
+            profilePageModel.addProfileAttributes(model, currentUser(request, authentication), currentProfile);
             return ProfilePage.VIEW;
         }
 
@@ -115,12 +117,13 @@ public class UserProfileController extends AbstractNavigationController {
                     "pictureUrl",
                     "profilePictureUpload",
                     localizationService.message(exception.reason()));
-            profilePageModel.addProfileAttributes(model, currentUser(userId, request), currentProfile);
+            profilePageModel.addProfileAttributes(model, currentUser(request, authentication), currentProfile);
             return ProfilePage.VIEW;
         }
 
         userProfileService.updateProfile(userId, profileUpdate(update));
-        userSettingsService.updateLanguage(userId, selectedLanguage.orElseThrow());
+        globalUserPreferences.updateLanguage(userId, selectedLanguage.orElseThrow());
+        globalUserPreferences.updateDisableBackgroundAnimation(userId, profileForm.disableBackgroundAnimation());
         if (profileSetupSession.isProfileSetupRequired(request)) {
             profileSetupSession.completeProfileSetup(request);
             currentUserSession.refresh(request, userId, false);
@@ -129,12 +132,6 @@ public class UserProfileController extends AbstractNavigationController {
         currentUserSession.refresh(request, userId, false);
         redirectAttributes.addFlashAttribute(PROFILE_SAVED_ATTRIBUTE, true);
         return ProfilePage.REDIRECT;
-    }
-
-    private CurrentUser currentUser(@NonNull UUID userId, @NonNull HttpServletRequest request) {
-        return currentUserSession.currentUser(request)
-                .orElseGet(() -> currentUserSession.refresh(
-                        request, userId, profileSetupSession.isProfileSetupRequired(request)));
     }
 
     private void addProfileFormIfMissing(@NonNull Model model,
@@ -146,7 +143,11 @@ public class UserProfileController extends AbstractNavigationController {
     }
 
     private UserProfileUpdateDto profileForm(@NonNull UserProfileDbo profile, @NonNull CurrentUser currentUser) {
-        return new UserProfileUpdateDto(profile.displayName(), profile.pictureUrl(), currentUser.languageTag());
+        return new UserProfileUpdateDto(
+                profile.displayName(),
+                profile.pictureUrl(),
+                currentUser.languageTag(),
+                currentUser.disableBackgroundAnimation());
     }
 
     private UserProfileUpdateDto updateWithPicture(@NonNull UUID userId,
@@ -157,10 +158,15 @@ public class UserProfileController extends AbstractNavigationController {
             return new UserProfileUpdateDto(
                     profileForm.displayName(),
                     currentProfile.pictureUrl(),
-                    profileForm.languageTag());
+                    profileForm.languageTag(),
+                    profileForm.disableBackgroundAnimation());
         }
         final String uploadedPictureUrl = profilePictureStorageService.store(userId, pictureFile);
-        return new UserProfileUpdateDto(profileForm.displayName(), uploadedPictureUrl, profileForm.languageTag());
+        return new UserProfileUpdateDto(
+                profileForm.displayName(),
+                uploadedPictureUrl,
+                profileForm.languageTag(),
+                profileForm.disableBackgroundAnimation());
     }
 
     private UserProfileUpdate profileUpdate(@NonNull UserProfileUpdateDto profileForm) {

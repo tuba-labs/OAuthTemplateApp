@@ -2,6 +2,8 @@ package org.tubalabs.app.users.profile.config;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -68,8 +70,31 @@ class ProfileSetupInterceptorTest {
     void allowsProfileRequestsWhenProfileSetupIsRequired() throws Exception {
         final MockHttpServletRequest request = request("/profile");
         final MockHttpServletResponse response = new MockHttpServletResponse();
+        final Authentication authentication = authenticatedUser();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(profileSetupRequirementService.isSetupRequiredForSession(request, USER_ID)).thenReturn(true);
 
         assertThat(interceptor.preHandle(request, response, new Object())).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/profile/login-types",
+            "/profile/login-types/local/link",
+            "/profile/password",
+            "/register"
+    })
+    void redirectsNonSetupRequestsToProfileWhenProfileSetupIsRequired(String path) throws Exception {
+        final MockHttpServletRequest request = request(path);
+        final MockHttpServletResponse response = new MockHttpServletResponse();
+        final Authentication authentication = authenticatedUser();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(currentUserIdResolver.requireUserId(authentication)).thenReturn(USER_ID);
+        when(profileSetupRequirementService.isSetupRequiredForSession(request, USER_ID)).thenReturn(true);
+
+        assertThat(interceptor.preHandle(request, response, new Object())).isFalse();
+        assertThat(response.getRedirectedUrl()).isEqualTo("/profile");
     }
 
     private Authentication authenticatedUser() {

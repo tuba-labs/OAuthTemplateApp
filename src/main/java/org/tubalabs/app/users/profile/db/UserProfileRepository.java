@@ -46,16 +46,19 @@ public class UserProfileRepository {
                         SET
                         display_name = :display_name,
                         picture_url = :picture_url,
+                        profile_complete = :profile_complete,
                         modified = CURRENT_TIMESTAMP
                         WHERE user_id = :user_id
                         RETURNING
                         user_id,
                         display_name,
-                        picture_url
+                        picture_url,
+                        profile_complete
                 """)
                 .param("user_id", dbo.userId())
                 .param("display_name", dbo.displayName())
                 .param("picture_url", dbo.pictureUrl())
+                .param("profile_complete", dbo.profileComplete())
                 .query(USER_PROFILE_ROW_MAPPER)
                 .single();
     }

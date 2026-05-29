@@ -26,6 +26,7 @@ app:
       prompt-skip-duration: ${REMEMBER_LOGIN_PROMPT_SKIP_DURATION:30d}
     remember-me:
       token-validity: ${REMEMBER_ME_TOKEN_VALIDITY:183d}
+      key: ${REMEMBER_ME_KEY:oauth-template-app-local-remember-me-key-change-before-production}
     password:
       pwned-passwords:
         enabled: true

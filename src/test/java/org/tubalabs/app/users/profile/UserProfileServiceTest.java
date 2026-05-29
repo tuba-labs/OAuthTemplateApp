@@ -50,6 +50,7 @@ class UserProfileServiceTest extends AbstractJdbcTestBaseTestClass {
 
         assertThat(updatedProfile.displayName()).isEqualTo(UPDATED_DISPLAY_NAME);
         assertThat(updatedProfile.pictureUrl()).isNull();
+        assertThat(updatedProfile.profileComplete()).isTrue();
         assertThat(userProfileRepository.findByUserId(USER_ID)).contains(updatedProfile);
     }
 
@@ -74,6 +75,7 @@ class UserProfileServiceTest extends AbstractJdbcTestBaseTestClass {
                 PICTURE_URL);
 
         assertThat(profile.displayName()).isEqualTo(TRUNCATED_DISPLAY_NAME);
+        assertThat(profile.profileComplete()).isFalse();
         assertThat(userProfileRepository.findByUserId(USER_ID)).contains(profile);
     }
 

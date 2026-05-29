@@ -3,7 +3,7 @@
 
     var storageKey = "oauth-template-app-theme";
 
-    document.documentElement.dataset.theme = localStorage.getItem(storageKey) === "light" ? "light" : "dark";
+    document.documentElement.dataset.theme = localStorage.getItem(storageKey) === "dark" ? "dark" : "light";
 
     document.addEventListener("DOMContentLoaded", function () {
         var toggles = document.querySelectorAll("[data-theme-toggle]");

@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.tubalabs.app.users.identity.password.security.LocalSessionAuthentication;
 import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.current.CurrentUserSession;
@@ -29,7 +30,8 @@ public class LocalLoginController {
     public String login(@RequestParam @NonNull String email,
                         @RequestParam @NonNull String password,
                         @NonNull HttpServletRequest request,
-                        @NonNull HttpServletResponse response) {
+                        @NonNull HttpServletResponse response,
+                        @NonNull RedirectAttributes redirectAttributes) {
         try {
             final LoginResult result = localUserService.login(email, password, clientIp(request), userAgent(request));
             localSessionAuthentication.authenticate(email, request, response);
@@ -41,7 +43,9 @@ public class LocalLoginController {
             }
             return "redirect:/remember-login";
         } catch (BadCredentialsException exception) {
-            return "redirect:/login/local?error";
+            redirectAttributes.addAttribute("error", true);
+            redirectAttributes.addAttribute("email", email);
+            return "redirect:/login/local";
         }
     }
 

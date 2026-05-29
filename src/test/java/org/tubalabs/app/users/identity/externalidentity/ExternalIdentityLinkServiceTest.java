@@ -16,6 +16,8 @@ import org.tubalabs.app.testtools.AbstractJdbcTestBaseTestClass;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditLog;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditWriter;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.user.UserDbo;
 import org.tubalabs.app.users.user.UserRepository;
@@ -37,6 +39,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
         EventLogRepository.class,
         EventLogService.class,
         UserIdentityEventFactory.class,
+        UserIdentityAuditLog.class,
+        UserIdentityAuditWriter.class,
         ExternalIdentityLinkService.class
 })
 class ExternalIdentityLinkServiceTest extends AbstractJdbcTestBaseTestClass {

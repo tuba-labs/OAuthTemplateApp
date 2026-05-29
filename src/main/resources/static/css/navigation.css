@@ -1,0 +1,298 @@
+.app-page {
+    min-height: 100vh;
+    padding-top: var(--app-menu-height);
+}
+
+.app-content {
+    min-height: calc(100vh - var(--app-menu-height));
+    background: transparent;
+}
+
+.app-menu-bar {
+    position: fixed;
+    z-index: 10;
+    top: 0;
+    right: 0;
+    left: var(--section-nav-collapsed-width);
+    display: flex;
+    height: var(--app-menu-height);
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--panel);
+}
+
+html[data-navigation-open="true"] .app-menu-bar,
+.app-navigation-shell[data-navigation-open="true"] .app-menu-bar {
+    left: var(--section-nav-width);
+}
+
+.app-navigation-controls {
+    display: grid;
+    grid-template-columns: 40px;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    min-height: 40px;
+}
+
+.app-navigation-filter-form {
+    display: none;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.app-navigation-filter {
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    max-width: none;
+    padding: 7px 10px;
+}
+
+.app-navigation-menu-toggle {
+    display: inline-flex;
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    background: var(--option-background);
+    border: 1px solid var(--option-border);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.app-navigation-menu-toggle:hover,
+.app-navigation-menu-toggle:focus-visible,
+.app-navigation-menu-toggle[aria-pressed="true"] {
+    background: var(--option-hover-background);
+    border-color: var(--primary);
+    outline: none;
+}
+
+.app-navigation-menu-toggle-lines {
+    display: grid;
+    width: 18px;
+    gap: 4px;
+}
+
+.app-navigation-menu-toggle-lines span {
+    display: block;
+    height: 2px;
+    background: currentColor;
+    border-radius: 999px;
+}
+
+.app-section-nav {
+    position: fixed;
+    z-index: 25;
+    top: 0;
+    left: 0;
+    width: var(--section-nav-collapsed-width);
+    max-height: var(--app-menu-height);
+    padding: 8px var(--section-nav-padding);
+    background: var(--panel);
+    overflow: hidden;
+}
+
+html[data-navigation-open="true"] .app-section-nav,
+.app-section-nav[data-navigation-open="true"],
+.app-section-nav[data-navigation-transient-open="true"] {
+    width: var(--section-nav-width);
+    max-height: 100vh;
+    overflow: auto;
+}
+
+html[data-navigation-open="true"] .app-section-nav .app-navigation-controls,
+.app-section-nav[data-navigation-open="true"] .app-navigation-controls,
+.app-section-nav[data-navigation-transient-open="true"] .app-navigation-controls {
+    grid-template-columns: 40px minmax(0, 1fr);
+}
+
+html[data-navigation-open="true"] .app-section-nav .app-navigation-filter-form,
+.app-section-nav[data-navigation-open="true"] .app-navigation-filter-form,
+.app-section-nav[data-navigation-transient-open="true"] .app-navigation-filter-form {
+    display: block;
+}
+
+.app-navigation-tree {
+    display: none;
+    margin-top: 4px;
+}
+
+html[data-navigation-open="true"] .app-section-nav .app-navigation-tree,
+.app-section-nav[data-navigation-open="true"] .app-navigation-tree,
+.app-section-nav[data-navigation-transient-open="true"] .app-navigation-tree {
+    display: block;
+}
+
+.app-navigation-shell-with-menu + .app-content {
+    margin-left: var(--section-nav-collapsed-width);
+}
+
+html[data-navigation-open="true"] .app-navigation-shell-with-menu + .app-content,
+.app-navigation-shell-with-menu[data-navigation-open="true"] + .app-content {
+    margin-left: var(--section-nav-width);
+}
+
+.app-menu-tree {
+    display: grid;
+    gap: 1px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.app-menu-tree-item {
+    min-width: 0;
+}
+
+.app-menu-tree .app-menu-tree {
+    padding-left: 12px;
+    border-left: 1px solid var(--panel-border);
+}
+
+.app-menu-link {
+    display: flex;
+    min-height: 40px;
+    min-width: 0;
+    align-items: center;
+    padding: 8px 10px;
+    color: var(--text);
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.app-menu-tree .app-menu-tree .app-menu-link {
+    min-height: 34px;
+    padding: 6px 10px;
+    font-weight: 550;
+}
+
+.app-menu-link-active {
+    color: var(--text);
+    background: var(--option-hover-background);
+}
+
+.app-menu-branch-label {
+    color: var(--muted);
+    cursor: default;
+}
+
+[data-navigation-filter-inherited="true"] > [data-navigation-menu-label] {
+    color: var(--muted);
+    opacity: 0.62;
+}
+
+.app-menu-link:hover,
+.app-menu-link:focus-visible {
+    color: var(--text);
+    background: var(--option-hover-background);
+    outline: none;
+}
+
+.app-menu-theme-toggle {
+    flex: 0 0 auto;
+    margin-left: 0;
+}
+
+.app-breadcrumbs {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.app-breadcrumb-list {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.app-breadcrumb-item {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.app-breadcrumb-item + .app-breadcrumb-item::before {
+    flex: 0 0 auto;
+    margin: 0 8px;
+    color: var(--muted);
+    content: "/";
+    opacity: 0.7;
+}
+
+.app-breadcrumb-link,
+.app-breadcrumb-current {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-breadcrumb-link {
+    text-decoration: none;
+}
+
+.app-breadcrumb-link:hover,
+.app-breadcrumb-link:focus-visible {
+    color: var(--text);
+    outline: none;
+}
+
+.app-breadcrumb-current {
+    color: var(--text);
+}
+
+@media (max-width: 760px) {
+    html[data-navigation-open="true"] .app-menu-bar,
+    .app-navigation-shell[data-navigation-open="true"] .app-menu-bar,
+    .app-menu-bar {
+        left: 0;
+    }
+
+    html[data-navigation-open="true"] .app-section-nav,
+    .app-section-nav[data-navigation-open="true"],
+    .app-section-nav[data-navigation-transient-open="true"],
+    .app-section-nav {
+        position: static;
+        width: auto;
+        max-height: none;
+        padding: 8px var(--section-nav-padding);
+        overflow: visible;
+        border-right: 0;
+        border-bottom: 1px solid var(--panel-border);
+    }
+
+    html[data-navigation-open="true"] .app-navigation-shell-with-menu + .app-content,
+    .app-navigation-shell-with-menu[data-navigation-open="true"] + .app-content,
+    .app-navigation-shell-with-menu + .app-content {
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .app-menu-bar {
+        gap: 8px;
+        padding: 0 10px;
+    }
+
+    .app-navigation-filter {
+        max-width: none;
+    }
+}

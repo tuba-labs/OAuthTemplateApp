@@ -19,6 +19,8 @@ import org.tubalabs.app.users.LoginResult;
 import org.tubalabs.app.users.identity.db.UserIdentityRepository;
 import org.tubalabs.app.users.identity.db.UserIdentityDbo;
 import org.tubalabs.app.users.identity.events.UserIdentityEventFactory;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditLog;
+import org.tubalabs.app.users.identity.logins.UserIdentityAuditWriter;
 import org.tubalabs.app.users.identity.logins.db.UserLoginRepository;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialAlreadyExistsException;
 import org.tubalabs.app.users.identity.password.db.UserPasswordCredentialDbo;
@@ -53,6 +55,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         EventLogRepository.class,
         EventLogService.class,
         UserIdentityEventFactory.class,
+        UserIdentityAuditLog.class,
+        UserIdentityAuditWriter.class,
         UserPasswordCredentialRepository.class,
         UserProfileRepository.class
 })
