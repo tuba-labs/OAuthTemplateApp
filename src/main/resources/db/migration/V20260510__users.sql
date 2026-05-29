@@ -101,3 +101,18 @@ CREATE TABLE user_preferences
 
     PRIMARY KEY (user_id, preference_key)
 );
+CREATE TABLE user_email_communication_channel
+(
+    user_id  UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+
+    modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    email    VARCHAR(320),
+    enabled  BOOLEAN   NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT user_email_communication_channel_email_not_blank_ck
+        CHECK (email IS NULL OR LENGTH(TRIM(email)) > 0),
+    CONSTRAINT user_email_communication_channel_enabled_email_ck
+        CHECK (enabled = FALSE OR email IS NOT NULL)
+);
