@@ -5,7 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.RecordComponent;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -27,19 +33,53 @@ public class SqlRecordIntrospector {
         return List.copyOf(recordComponents(tableName, shape, excludedColumns).values());
     }
 
+    public String columnFromField(@NonNull String tableName, @NonNull String fieldName) {
+        return columnName(tableName, fieldName);
+    }
+
+    public String qualifiedColumnFromField(@NonNull String tableName,
+                                           @NonNull String tableAlias,
+                                           @NonNull String fieldName) {
+        return tableAlias + "." + columnFromField(tableName, fieldName);
+    }
+
+    public String columnAliasFromField(@NonNull String tableName,
+                                       @NonNull String columnAliasPrefix,
+                                       @NonNull String fieldName) {
+        return columnAliasPrefix + "_" + columnFromField(tableName, fieldName);
+    }
+
+    public List<String> qualifiedColumnsFromShape(@NonNull String tableName,
+                                                  @NonNull String tableAlias,
+                                                  @NonNull Class<? extends Record> shape,
+                                                  @NonNull Collection<String> excludedColumns) {
+        return recordComponents(tableName, shape, excludedColumns).values().stream()
+                .map(column -> tableAlias + "." + column)
+                .toList();
+    }
+
+    public List<String> aliasedColumnsFromShape(@NonNull String tableName,
+                                                @NonNull String tableAlias,
+                                                @NonNull String columnAliasPrefix,
+                                                @NonNull Class<? extends Record> shape,
+                                                @NonNull Collection<String> excludedColumns) {
+        return recordComponents(tableName, shape, excludedColumns).values().stream()
+                .map(column -> tableAlias + "." + column + " AS " + columnAliasPrefix + "_" + column)
+                .toList();
+    }
+
     public LinkedHashMap<String, Object> paramsFromRecord(@NonNull String tableName,
                                                           @NonNull Record record,
                                                           @NonNull Collection<String> excludedInsertColumns) {
         return parameters(tableName, record, excludedInsertColumns);
     }
 
-
     public String insertSql(@NonNull String tableName, @NonNull LinkedHashMap<String, Object> params) {
         final Set<String> insertColumns = params.keySet();
         final String csvInsertColumns = csvColumns(insertColumns);
         final String csvPlaceholders = placeholders(insertColumns);
         return """
-                INSERT INTO %s 
+                INSERT INTO %s
                 (%s)
                 VALUES
                 (%s)
@@ -47,7 +87,6 @@ public class SqlRecordIntrospector {
                 .formatted(tableName, csvInsertColumns,
                         csvPlaceholders);
     }
-
 
     public String returning(@NonNull Collection<String> returnedColumns) {
         return """
@@ -63,7 +102,7 @@ public class SqlRecordIntrospector {
                 .collect(Collectors.joining(SQL_COLUMN_SEPARATOR));
         return """
                 UPDATE %s
-                SET 
+                SET
                 %s
                 """
                 .formatted(tableName, setClause);
@@ -72,7 +111,7 @@ public class SqlRecordIntrospector {
     public String select(@NonNull String tableName,
                          @NonNull List<String> columnsFromRecord) {
         return """
-                SELECT 
+                SELECT
                 %s
                 FROM %s
                 """
@@ -101,12 +140,12 @@ public class SqlRecordIntrospector {
                 .map(column -> columnName(tableName, column))
                 .collect(Collectors.toSet());
         return Arrays.stream(shape.getRecordComponents())
-                .map(rc -> {
-                    final String rcName = columnName(tableName, rc.getName());
-                    if (normalizedExcludedColumns.contains(rcName)) {
+                .map(recordComponent -> {
+                    final String recordComponentColumnName = columnName(tableName, recordComponent.getName());
+                    if (normalizedExcludedColumns.contains(recordComponentColumnName)) {
                         return null;
                     }
-                    return Map.entry(rc, rcName);
+                    return Map.entry(recordComponent, recordComponentColumnName);
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
@@ -116,21 +155,19 @@ public class SqlRecordIntrospector {
                         LinkedHashMap::new));
     }
 
-
     private LinkedHashMap<String, Object> parameters(@NonNull String tableName,
                                                      @NonNull Record record,
                                                      @NonNull Collection<String> excludedColumns) {
         final LinkedHashMap<String, Object> parameters = new LinkedHashMap<>();
-        final Class<? extends Record> clazz = record.getClass().asSubclass(Record.class);
-        for (Map.Entry<RecordComponent, String> e : recordComponents(tableName, clazz, excludedColumns).entrySet()) {
+        final Class<? extends Record> recordClass = record.getClass().asSubclass(Record.class);
+        for (Map.Entry<RecordComponent, String> entry :
+                recordComponents(tableName, recordClass, excludedColumns).entrySet()) {
             try {
-                parameters.put(e.getValue(), e.getKey().getAccessor().invoke(record));
+                parameters.put(entry.getValue(), entry.getKey().getAccessor().invoke(record));
             } catch (ReflectiveOperationException exception) {
-                throw new IllegalArgumentException("Failed to read record values: " + clazz, exception);
+                throw new IllegalArgumentException("Failed to read record values: " + recordClass, exception);
             }
         }
         return parameters;
     }
-
-
 }

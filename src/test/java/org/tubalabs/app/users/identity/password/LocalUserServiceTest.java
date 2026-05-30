@@ -251,4 +251,5 @@ class LocalUserServiceTest extends AbstractJdbcTestBaseTestClass {
                 .query(Integer.class)
                 .single();
     }
+
 }

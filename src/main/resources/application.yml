@@ -21,6 +21,18 @@ app:
       thumbnail-size-pixels: ${PROFILE_PICTURE_THUMBNAIL_SIZE_PIXELS:100}
       max-width-pixels: ${PROFILE_PICTURE_MAX_WIDTH_PIXELS:4096}
       max-height-pixels: ${PROFILE_PICTURE_MAX_HEIGHT_PIXELS:4096}
+  communication:
+    email:
+      from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@localhost}
+      from-name: ${APP_EMAIL_FROM_NAME:${applicationName}}
+      latest-delivery-duration: ${APP_EMAIL_LATEST_DELIVERY_DURATION:15m}
+      initial-retry-delay: ${APP_EMAIL_INITIAL_RETRY_DELAY:10s}
+      max-retry-delay: ${APP_EMAIL_MAX_RETRY_DELAY:5m}
+      dispatch-lock-duration: ${APP_EMAIL_DISPATCH_LOCK_DURATION:2m}
+      dispatch-batch-size: ${APP_EMAIL_DISPATCH_BATCH_SIZE:25}
+      dispatch-scheduler-pool-size: ${APP_EMAIL_DISPATCH_SCHEDULER_POOL_SIZE:5}
+      dispatch-fixed-delay: ${APP_EMAIL_DISPATCH_FIXED_DELAY:10s}
+      message-id-domain: ${APP_EMAIL_MESSAGE_ID_DOMAIN:localhost}
   security:
     remember-login:
       prompt-skip-duration: ${REMEMBER_LOGIN_PROMPT_SKIP_DURATION:30d}

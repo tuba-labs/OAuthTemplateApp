@@ -9,6 +9,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.tubalabs.app.users.LoginResult;
@@ -54,6 +56,7 @@ class Oauth2SecurityCustomizerTest {
     private final ProfileSetupRequirementService profileSetupRequirementService =
             Mockito.mock(ProfileSetupRequirementService.class);
     private final CurrentUserSession currentUserSession = Mockito.mock(CurrentUserSession.class);
+    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> githubOAuth2UserService = mockOAuth2UserService();
     private final Oauth2SecurityCustomizer customizer = new Oauth2SecurityCustomizer(
             userService,
             externalIdentityLinkService,
@@ -61,7 +64,8 @@ class Oauth2SecurityCustomizerTest {
             externalIdentityProviders,
             profileSetupSession,
             profileSetupRequirementService,
-            currentUserSession);
+            currentUserSession,
+            githubOAuth2UserService);
 
     @AfterEach
     void clearSecurityContext() {
@@ -174,5 +178,10 @@ class Oauth2SecurityCustomizerTest {
     private void stubProvider(OAuth2AuthenticationToken authentication) {
         when(externalIdentityProviders.getProvider(PROVIDER_ID)).thenReturn(externalIdentityProvider);
         when(externalIdentityProvider.getIdentity(authentication.getPrincipal())).thenReturn(EXTERNAL_IDENTITY);
+    }
+
+    @SuppressWarnings("unchecked")
+    private OAuth2UserService<OAuth2UserRequest, OAuth2User> mockOAuth2UserService() {
+        return Mockito.mock(OAuth2UserService.class);
     }
 }

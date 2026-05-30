@@ -34,16 +34,16 @@ CREATE INDEX user_identity_user_id_idx
 CREATE TABLE user_login
 (
     id          UUID PRIMARY KEY,
-    created     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    user_id     UUID          NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    login_time  TIMESTAMP     NOT NULL,
+    user_id     UUID         NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    login_time  TIMESTAMP    NOT NULL,
 
-    provider_id VARCHAR(100)  NOT NULL,
-    subject     VARCHAR(255)  NOT NULL,
+    provider_id VARCHAR(100) NOT NULL,
+    subject     VARCHAR(255) NOT NULL,
 
-    client_ip   VARCHAR(64)   NOT NULL,
-    user_agent  TEXT NOT NULL DEFAULT ''
+    client_ip   VARCHAR(64)  NOT NULL,
+    user_agent  TEXT         NOT NULL DEFAULT ''
 );
 
 CREATE INDEX user_login_user_id_idx
@@ -57,14 +57,14 @@ CREATE INDEX user_login_provider_subject_idx
 
 CREATE TABLE user_profile
 (
-    user_id      UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+    user_id          UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
 
-    modified     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modified         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     display_name     VARCHAR(20),
     picture_url      VARCHAR(2000),
-    profile_complete BOOLEAN NOT NULL DEFAULT FALSE
+    profile_complete BOOLEAN   NOT NULL DEFAULT FALSE
 );
 
 
@@ -100,19 +100,4 @@ CREATE TABLE user_preferences
     created          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (user_id, preference_key)
-);
-CREATE TABLE user_email_communication_channel
-(
-    user_id  UUID PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-
-    modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    email    VARCHAR(320),
-    enabled  BOOLEAN   NOT NULL DEFAULT FALSE,
-
-    CONSTRAINT user_email_communication_channel_email_not_blank_ck
-        CHECK (email IS NULL OR LENGTH(TRIM(email)) > 0),
-    CONSTRAINT user_email_communication_channel_enabled_email_ck
-        CHECK (enabled = FALSE OR email IS NOT NULL)
 );
